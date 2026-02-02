@@ -11,7 +11,7 @@ A web application for composing and generating images using the Google Gemini AP
 | Layer | Technology |
 |-------|------------|
 | Framework | Next.js 15 (App Router) |
-| Database | SQLite via better-sqlite3 |
+| Database | SQLite via bun:sqlite |
 | State | Zustand |
 | Data fetching | SWR |
 | Styling | Tailwind + shadcn/ui |
@@ -217,12 +217,16 @@ Already installed: button, badge, card, input, textarea, label, separator, selec
 
 ## Database
 
-SQLite database at `data/prompt-builder.db`. Use `better-sqlite3` synchronously:
+SQLite database at `data/prompt-builder.db`. Use `bun:sqlite` synchronously:
 
 ```ts
-import { getDb } from '@/lib/db';
-const db = getDb();
-const rows = db.prepare('SELECT * FROM components WHERE category_id = ?').all(categoryId);
+import { get_db } from '@/lib/db';
+const db = get_db();
+const rows = db.prepare('SELECT * FROM components WHERE category_id = ?').all(category_id);
 ```
 
 Key tables: categories, components, saved_prompts, generations, generation_queue, favorites
+
+Scripts:
+- `bun run db:migrate` - Run pending migrations
+- `bun run db:seed` - Seed initial data (runs migrations first)
