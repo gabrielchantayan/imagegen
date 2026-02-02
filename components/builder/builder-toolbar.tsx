@@ -106,51 +106,77 @@ export const BuilderToolbar = () => {
   const is_generating = generation_status === "generating" || generation_status === "queued";
 
   return (
-    <div className="h-14 border-b flex items-center justify-between px-4">
+    <div className="h-14 border-b bg-background/80 backdrop-blur-md flex items-center justify-between px-4 sticky top-0 z-50">
       <div className="flex items-center gap-2">
-        <Button onClick={handle_generate} disabled={!composed_prompt || is_generating}>
+        <Button 
+          onClick={handle_generate} 
+          disabled={!composed_prompt || is_generating}
+          className="bg-primary hover:bg-primary/90 shadow-sm transition-all"
+        >
           <Sparkles className="size-4 mr-2" />
           {is_generating ? "Generating..." : "Generate"}
         </Button>
 
-        <Button variant="outline" onClick={handle_save_prompt} disabled={!composed_prompt}>
+        <Button 
+          variant="outline" 
+          onClick={handle_save_prompt} 
+          disabled={!composed_prompt}
+          className="border-primary/20 hover:border-primary/50 text-foreground"
+        >
           <Save className="size-4 mr-2" />
-          Save Prompt
+          Save
         </Button>
 
-        <Button variant="ghost" onClick={clear_builder}>
+        <div className="h-6 w-px bg-border mx-2" />
+
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={clear_builder}
+          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+        >
           <Trash2 className="size-4 mr-2" />
           Clear
         </Button>
-
-        <Link href="/history">
-          <Button variant="ghost">
-            <History className="size-4 mr-2" />
-            History
-          </Button>
-        </Link>
-
-        <Link href="/library">
-          <Button variant="ghost">
-            <Library className="size-4 mr-2" />
-            Library
-          </Button>
-        </Link>
-
-        <Link href="/admin">
-          <Button variant="ghost">
-            <BarChart3 className="size-4 mr-2" />
-            Dashboard
-          </Button>
-        </Link>
       </div>
 
-      <div className="flex items-center gap-4">
-        {queue_position !== null && (
-          <span className="text-sm text-muted-foreground">Queue: {queue_position}/5</span>
+      <div className="flex items-center gap-1">
+         {queue_position !== null && (
+          <div className="flex items-center gap-2 mr-4 text-xs font-medium text-muted-foreground bg-secondary/50 px-3 py-1 rounded-full">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+            </span>
+            Queue: {queue_position}/5
+          </div>
         )}
 
-        <span className="text-xs text-muted-foreground">⌘Enter to generate</span>
+        <div className="flex items-center border rounded-lg p-1 mr-2">
+          <Link href="/history">
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-muted-foreground hover:text-foreground">
+              <History className="size-4 mr-1.5" />
+              History
+            </Button>
+          </Link>
+
+          <div className="w-px h-4 bg-border mx-1" />
+
+          <Link href="/library">
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-muted-foreground hover:text-foreground">
+              <Library className="size-4 mr-1.5" />
+              Library
+            </Button>
+          </Link>
+          
+           <div className="w-px h-4 bg-border mx-1" />
+
+          <Link href="/admin">
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-muted-foreground hover:text-foreground">
+              <BarChart3 className="size-4 mr-1.5" />
+              Stats
+            </Button>
+          </Link>
+        </div>
 
         <SettingsDropdown />
       </div>

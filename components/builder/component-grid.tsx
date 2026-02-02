@@ -158,16 +158,16 @@ export const ComponentGrid = () => {
               className="w-full"
             />
           </div>
-
+          
           <div className="flex-1 flex items-center justify-end gap-2">
             {current_selections.length > 0 && (
               <div className="flex items-center gap-2 mr-2">
                 <Badge variant="secondary" className="px-3 py-1">
                   {current_selections.length} selected
                 </Badge>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
                   onClick={handle_clear}
                   className="text-muted-foreground hover:text-foreground"
                 >
@@ -176,7 +176,7 @@ export const ComponentGrid = () => {
                 </Button>
               </div>
             )}
-
+            
             {active_category === "physical_traits" && (
               <Button
                 variant="outline"
@@ -186,7 +186,7 @@ export const ComponentGrid = () => {
                 Analyze Face
               </Button>
             )}
-
+            
             <Button
               onClick={() => {
                 set_editing_component(null);
@@ -232,8 +232,8 @@ export const ComponentGrid = () => {
               {search ? "No matches found" : "No components yet"}
             </h3>
             <p className="max-w-xs mx-auto mb-6">
-              {search
-                ? `We couldn't find any components matching "${search}"`
+              {search 
+                ? `We couldn't find any components matching "${search}"` 
                 : "Create your first component to get started with this category."}
             </p>
             {search ? (

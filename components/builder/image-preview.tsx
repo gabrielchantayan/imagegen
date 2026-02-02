@@ -51,7 +51,7 @@ export const ImagePreview = () => {
             className="max-h-full max-w-full object-contain rounded-lg shadow-sm"
           />
         </div>
-
+        
         {/* Floating Controls Overlay */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 backdrop-blur-md border border-border/50 p-1.5 rounded-full opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-xl">
           <a
@@ -62,8 +62,8 @@ export const ImagePreview = () => {
             <Download className="size-4 mr-2" />
             Download
           </a>
-          <Button
-            variant="ghost"
+          <Button 
+            variant="ghost" 
             size="sm"
             className="h-9 px-4 rounded-full hover:bg-background/80"
             disabled
@@ -86,7 +86,7 @@ export const ImagePreview = () => {
             className="max-h-full max-w-full object-contain rounded-lg shadow-sm"
           />
         </div>
-
+        
         {/* Floating Controls Overlay */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 backdrop-blur-md border border-border/50 p-1.5 rounded-full opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-xl">
           <a

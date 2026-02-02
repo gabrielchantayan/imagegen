@@ -151,9 +151,9 @@ export const ComponentEditor = ({
                    {json_error && (
                     <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
                       <p className="text-xs font-medium text-destructive">{json_error}</p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
                         onClick={handle_repair}
                         className="h-6 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
                       >

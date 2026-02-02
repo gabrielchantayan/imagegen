@@ -38,7 +38,7 @@ export const ComponentCard = ({
             {component.name}
           </h3>
         </div>
-
+        
         {component.description && (
           <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
             {component.description}

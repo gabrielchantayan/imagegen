@@ -147,9 +147,9 @@ export const AnalyzePanel = ({ on_save_as_presets }: AnalyzePanelProps) => {
               "Start Analysis"
             )}
           </Button>
-          <Button
-            variant="outline"
-            onClick={handle_clear}
+          <Button 
+            variant="outline" 
+            onClick={handle_clear} 
             disabled={!file}
             className="h-10 px-4"
           >

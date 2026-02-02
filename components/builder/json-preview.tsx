@@ -69,8 +69,8 @@ export const JsonPreview = () => {
             size="sm"
             onClick={() => set_view_mode("visual")}
             className={`h-7 px-3 text-xs font-medium rounded-md transition-all ${
-              view_mode === "visual"
-                ? "bg-background text-foreground shadow-sm"
+              view_mode === "visual" 
+                ? "bg-background text-foreground shadow-sm" 
                 : "text-muted-foreground hover:text-foreground hover:bg-transparent"
             }`}
           >
@@ -82,8 +82,8 @@ export const JsonPreview = () => {
             size="sm"
             onClick={() => set_view_mode("raw")}
             className={`h-7 px-3 text-xs font-medium rounded-md transition-all ${
-              view_mode === "raw"
-                ? "bg-background text-foreground shadow-sm"
+              view_mode === "raw" 
+                ? "bg-background text-foreground shadow-sm" 
                 : "text-muted-foreground hover:text-foreground hover:bg-transparent"
             }`}
           >
@@ -133,9 +133,9 @@ export const JsonPreview = () => {
                 <span className="size-1.5 rounded-full bg-destructive" />
                 {json_error}
               </p>
-              <Button
-                variant="outline"
-                size="sm"
+              <Button 
+                variant="outline" 
+                size="sm" 
                 onClick={handle_repair}
                 className="h-7 text-xs border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
               >
