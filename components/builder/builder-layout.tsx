@@ -33,16 +33,16 @@ export const BuilderLayout = () => {
         <CategorySidebar className="w-48 border-r shrink-0" />
 
         {/* Main content */}
-        <ResizablePanelGroup orientation="vertical" className="flex-1">
+        <ResizablePanelGroup direction="horizontal" className="flex-1">
           {/* Component selection */}
-          <ResizablePanel defaultSize={60} minSize={30}>
+          <ResizablePanel defaultSize={55} minSize={30}>
             <ComponentGrid />
           </ResizablePanel>
 
           <ResizableHandle withHandle />
 
           {/* Preview area */}
-          <ResizablePanel defaultSize={40} minSize={20}>
+          <ResizablePanel defaultSize={45} minSize={25}>
             <Tabs
               value={preview_tab}
               onValueChange={(v) => set_preview_tab(v as "json" | "image")}
