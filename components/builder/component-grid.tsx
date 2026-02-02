@@ -10,6 +10,7 @@ import { ComponentEditor } from "@/components/library/component-editor";
 import { AnalyzePanel } from "./analyze-panel";
 import { FacialAnalysisPanel } from "./facial-analysis-panel";
 import { SavePresetsModal } from "./save-presets-modal";
+import { GeneratePanel } from "./generate-panel";
 import {
   use_components,
   create_component_api,
@@ -56,6 +57,11 @@ export const ComponentGrid = () => {
         )}
       </>
     );
+  }
+
+  // Handle "generate" special category
+  if (active_category === "generate") {
+    return <GeneratePanel />;
   }
 
   // Handle facial analysis panel for physical_traits category
