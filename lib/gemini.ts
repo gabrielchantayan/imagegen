@@ -3,9 +3,11 @@ import { GoogleGenAI } from "@google/genai";
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 export type AspectRatio = "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
+export type ImageSize = "1K" | "2K" | "4K";
 
 export type GenerationOptions = {
   aspect_ratio?: AspectRatio;
+  image_size?: ImageSize;
   number_of_images?: number;
   safety_override?: boolean;
   use_google_search?: boolean;
@@ -26,16 +28,26 @@ export const generate_image = async (
   try {
     const model_name = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp-image-generation";
 
-    const generation_config: Record<string, unknown> = {
-      responseModalities: ["image", "text"],
-    };
+    const image_config: Record<string, unknown> = {};
 
     if (options.aspect_ratio) {
-      generation_config.aspectRatio = options.aspect_ratio;
+      image_config.aspectRatio = options.aspect_ratio;
+    }
+
+    if (options.image_size) {
+      image_config.imageSize = options.image_size;
     }
 
     if (options.number_of_images) {
-      generation_config.numberOfImages = options.number_of_images;
+      image_config.numberOfImages = options.number_of_images;
+    }
+
+    const generation_config: Record<string, unknown> = {
+      responseModalities: ["IMAGE", "TEXT"],
+    };
+
+    if (Object.keys(image_config).length > 0) {
+      generation_config.imageConfig = image_config;
     }
 
     const prompt_text = format_prompt_for_gemini(prompt);

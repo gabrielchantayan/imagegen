@@ -21,7 +21,10 @@ export const process_queue = async (): Promise<void> => {
       }
 
       try {
-        const result = await generate_image(item.prompt_json);
+        const result = await generate_image(item.prompt_json, {
+          aspect_ratio: "3:4",
+          image_size: "4K",
+        });
 
         if (result.success && result.images && result.images.length > 0) {
           const image_path = await save_image(result.images[0], result.mime_type!);
