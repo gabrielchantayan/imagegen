@@ -18,6 +18,7 @@ import {
   delete_component_api,
 } from "@/lib/hooks/use-components";
 import { use_builder_store, SHARED_CATEGORIES } from "@/lib/stores/builder-store";
+import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { Loader2, Plus, ScanFace, X } from "lucide-react";
 
 import type { Component } from "@/lib/types/database";
@@ -145,67 +146,111 @@ export const ComponentGrid = () => {
   }
 
   return (
-    <div className="h-full flex flex-col p-4">
+    <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-4">
-        <Input
-          placeholder="Search components..."
-          value={search}
-          onChange={(e) => set_search(e.target.value)}
-          className="max-w-xs"
-        />
-        {current_selections.length > 0 && (
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">
-              {current_selections.length} selected
-            </Badge>
-            <Button variant="ghost" size="sm" onClick={handle_clear}>
-              <X className="size-4 mr-1" />
-              Clear
+      <div className="flex-none p-4 pb-0 bg-background/80 backdrop-blur-sm z-10 sticky top-0">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="relative flex-1 max-w-sm">
+            <Input
+              placeholder="Search components..."
+              value={search}
+              onChange={(e) => set_search(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          <div className="flex-1 flex items-center justify-end gap-2">
+            {current_selections.length > 0 && (
+              <div className="flex items-center gap-2 mr-2">
+                <Badge variant="secondary" className="px-3 py-1">
+                  {current_selections.length} selected
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handle_clear}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-4 mr-1" />
+                  Clear
+                </Button>
+              </div>
+            )}
+
+            {active_category === "physical_traits" && (
+              <Button
+                variant="outline"
+                onClick={() => set_show_facial_analysis(true)}
+              >
+                <ScanFace className="size-4 mr-2" />
+                Analyze Face
+              </Button>
+            )}
+
+            <Button
+              onClick={() => {
+                set_editing_component(null);
+                set_editor_open(true);
+              }}
+            >
+              <Plus className="size-4 mr-2" />
+              Add New
             </Button>
           </div>
-        )}
-        {active_category === "physical_traits" && (
-          <Button
-            variant="outline"
-            onClick={() => set_show_facial_analysis(true)}
-          >
-            <ScanFace className="size-4 mr-2" />
-            Analyze Face
-          </Button>
-        )}
-        <Button
-          onClick={() => {
-            set_editing_component(null);
-            set_editor_open(true);
-          }}
-        >
-          <Plus className="size-4 mr-2" />
-          Add New
-        </Button>
+        </div>
+        <div className="h-px bg-border w-full" />
       </div>
 
       {/* Grid */}
-      <div className="flex-1 overflow-auto">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filtered_components.map((component) => (
-            <ComponentCard
-              key={component.id}
-              component={component}
-              selected={selection_order_map.has(component.id)}
-              selection_order={selection_order_map.get(component.id)}
-              on_select={() => handle_select(component)}
-              on_edit={() => {
-                set_editing_component(component);
-                set_editor_open(true);
-              }}
-            />
-          ))}
-        </div>
+      <div className="flex-1 overflow-y-auto p-4 min-h-0">
+        <ResponsiveMasonry
+          columnsCountBreakPoints={{ 350: 1, 750: 2, 900: 3, 1200: 4 }}
+        >
+          <Masonry gutter="1rem">
+            {filtered_components.map((component) => (
+              <ComponentCard
+                key={component.id}
+                component={component}
+                selected={selection_order_map.has(component.id)}
+                selection_order={selection_order_map.get(component.id)}
+                on_select={() => handle_select(component)}
+                on_edit={() => {
+                  set_editing_component(component);
+                  set_editor_open(true);
+                }}
+              />
+            ))}
+          </Masonry>
+        </ResponsiveMasonry>
 
         {filtered_components.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            {search ? "No matches found." : "No components yet. Create one to get started."}
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground text-center animate-in fade-in duration-300">
+            <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+               {search ? <Loader2 className="size-8" /> : <Plus className="size-8" />}
+            </div>
+            <h3 className="font-semibold text-lg mb-1">
+              {search ? "No matches found" : "No components yet"}
+            </h3>
+            <p className="max-w-xs mx-auto mb-6">
+              {search
+                ? `We couldn't find any components matching "${search}"`
+                : "Create your first component to get started with this category."}
+            </p>
+            {search ? (
+              <Button variant="outline" onClick={() => set_search("")}>
+                Clear Search
+              </Button>
+            ) : (
+              <Button
+                onClick={() => {
+                  set_editing_component(null);
+                  set_editor_open(true);
+                }}
+              >
+                <Plus className="size-4 mr-2" />
+                Create Component
+              </Button>
+            )}
           </div>
         )}
       </div>
