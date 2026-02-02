@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ComponentCard } from "@/components/library/component-card";
 import { ComponentEditor } from "@/components/library/component-editor";
 import { AnalyzePanel } from "./analyze-panel";
+import { FacialAnalysisPanel } from "./facial-analysis-panel";
 import { SavePresetsModal } from "./save-presets-modal";
 import {
   use_components,
@@ -15,7 +16,7 @@ import {
   delete_component_api,
 } from "@/lib/hooks/use-components";
 import { use_builder_store, SHARED_CATEGORIES } from "@/lib/stores/builder-store";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, ScanFace } from "lucide-react";
 
 import type { Component } from "@/lib/types/database";
 
@@ -32,6 +33,7 @@ export const ComponentGrid = () => {
   const [editing_component, set_editing_component] = useState<Component | null>(null);
   const [analysis_data, set_analysis_data] = useState<Record<string, unknown> | null>(null);
   const [save_presets_open, set_save_presets_open] = useState(false);
+  const [show_facial_analysis, set_show_facial_analysis] = useState(false);
 
   // Handle "analyze" special category
   if (active_category === "analyze") {
@@ -51,6 +53,19 @@ export const ComponentGrid = () => {
           />
         )}
       </>
+    );
+  }
+
+  // Handle facial analysis panel for physical_traits category
+  if (active_category === "physical_traits" && show_facial_analysis) {
+    return (
+      <FacialAnalysisPanel
+        on_back={() => set_show_facial_analysis(false)}
+        on_save={() => {
+          mutate();
+          set_show_facial_analysis(false);
+        }}
+      />
     );
   }
 
@@ -125,6 +140,15 @@ export const ComponentGrid = () => {
           onChange={(e) => set_search(e.target.value)}
           className="max-w-xs"
         />
+        {active_category === "physical_traits" && (
+          <Button
+            variant="outline"
+            onClick={() => set_show_facial_analysis(true)}
+          >
+            <ScanFace className="size-4 mr-2" />
+            Analyze Face
+          </Button>
+        )}
         <Button
           onClick={() => {
             set_editing_component(null);

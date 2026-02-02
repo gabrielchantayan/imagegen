@@ -64,6 +64,11 @@ export const generate_image = async (
 
     for (const candidate of result.candidates || []) {
       for (const part of candidate.content?.parts || []) {
+        // Log thinking chain for debugging
+        if (part.thought && part.text) {
+          console.log("[Gemini Thinking]", part.text);
+        }
+
         if (part.inlineData) {
           images.push(Buffer.from(part.inlineData.data!, "base64"));
           mime_type = part.inlineData.mimeType || mime_type;
