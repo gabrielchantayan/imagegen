@@ -43,8 +43,8 @@ export const ImagePreview = () => {
 
   if (generation_status === "completed" && last_generated_image) {
     return (
-      <div className="h-full flex flex-col p-4">
-        <div className="flex-1 flex items-center justify-center relative">
+      <div className="h-full flex flex-col p-4 min-h-0">
+        <div className="flex-1 flex items-center justify-center relative min-h-0 overflow-hidden">
           <img
             src={last_generated_image}
             alt="Generated image"
@@ -71,8 +71,8 @@ export const ImagePreview = () => {
 
   if (last_generated_image) {
     return (
-      <div className="h-full flex flex-col p-4">
-        <div className="flex-1 flex items-center justify-center relative">
+      <div className="h-full flex flex-col p-4 min-h-0">
+        <div className="flex-1 flex items-center justify-center relative min-h-0 overflow-hidden">
           <img
             src={last_generated_image}
             alt="Generated image"
