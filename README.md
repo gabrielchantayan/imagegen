@@ -2,6 +2,13 @@
 
 A tool for generating images with Nano Banana based on structured components.
 
+```diff
+- NOTE: This project is a part of a personal exploration on experimental Claude Code usage.
+- This entire project is YOLO'd, with the code having never been looked at.
+- I have taken care to ensure that this code is safe to run, however
+- be warned that it has not been checked by human eyes.
+```
+
 ---
 
 ## The Problem
