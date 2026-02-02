@@ -19,13 +19,20 @@ export default function LibraryPage() {
 
   return (
     <div className="container py-8">
-      <div className="flex items-center gap-4 mb-6">
-        <Link href="/builder">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="size-4" />
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <Link href="/builder">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="size-4" />
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold">Saved Prompts</h1>
+        </div>
+        <Link href="/library/import-export">
+          <Button variant="outline" size="sm">
+            Import / Export
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">Saved Prompts</h1>
       </div>
       <PromptsList on_select={handle_select} />
     </div>
