@@ -4,7 +4,7 @@ import { with_auth } from '@/lib/api-auth';
 import { create_component } from '@/lib/repositories/components';
 import { create_prompt } from '@/lib/repositories/prompts';
 import { parse_himd } from '@/lib/parser';
-import { get_db } from '@/lib/db';
+import { get_db, transaction } from '@/lib/db';
 
 export const POST = async (request: Request) => {
   return with_auth(async () => {
@@ -25,8 +25,10 @@ export const POST = async (request: Request) => {
     // Replace mode: clear existing data
     if (mode === 'replace') {
       const db = get_db();
-      db.prepare('DELETE FROM components').run();
-      db.prepare('DELETE FROM saved_prompts').run();
+      transaction(() => {
+        db.prepare('DELETE FROM components').run();
+        db.prepare('DELETE FROM saved_prompts').run();
+      });
     }
 
     if (format === 'json') {
