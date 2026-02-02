@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { jsonrepair } from 'jsonrepair';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Wrench } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -89,6 +92,16 @@ export const ComponentEditor = ({
     }
   };
 
+  const handle_repair = () => {
+    try {
+      const repaired = jsonrepair(json_data);
+      set_json_data(repaired);
+      set_json_error('');
+    } catch {
+      set_json_error('Could not repair JSON');
+    }
+  };
+
   return (
     <AlertDialog open={open} onOpenChange={on_open_change}>
       <AlertDialogContent className="max-w-2xl">
@@ -130,7 +143,13 @@ export const ComponentEditor = ({
               placeholder="{}"
             />
             {json_error && (
-              <p className="text-sm text-destructive">{json_error}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-destructive">{json_error}</p>
+                <Button variant="outline" size="sm" onClick={handle_repair}>
+                  <Wrench className="size-3 mr-1" />
+                  Repair
+                </Button>
+              </div>
             )}
           </div>
         </div>

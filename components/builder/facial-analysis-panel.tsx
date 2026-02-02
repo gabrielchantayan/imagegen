@@ -2,12 +2,14 @@
 
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
+import { jsonrepair } from "jsonrepair";
+
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Upload, X, Loader2, ArrowLeft, Save } from "lucide-react";
+import { Upload, X, Loader2, ArrowLeft, Save, Wrench } from "lucide-react";
 import Image from "next/image";
 import { create_component_api } from "@/lib/hooks/use-components";
 
@@ -27,6 +29,7 @@ export const FacialAnalysisPanel = ({
   const [result, set_result] = useState<Record<string, unknown> | null>(null);
   const [result_text, set_result_text] = useState<string>("");
   const [error, set_error] = useState<string | null>(null);
+  const [json_error, set_json_error] = useState<string | null>(null);
   const [component_name, set_component_name] = useState("");
 
   const on_drop = useCallback((accepted_files: File[]) => {
@@ -37,6 +40,7 @@ export const FacialAnalysisPanel = ({
       set_result(null);
       set_result_text("");
       set_error(null);
+      set_json_error(null);
     }
   }, []);
 
@@ -88,6 +92,7 @@ export const FacialAnalysisPanel = ({
     set_result(null);
     set_result_text("");
     set_error(null);
+    set_json_error(null);
     set_component_name("");
   };
 
@@ -96,6 +101,7 @@ export const FacialAnalysisPanel = ({
 
     set_saving(true);
     set_error(null);
+    set_json_error(null);
 
     try {
       // Parse the potentially edited JSON
@@ -111,12 +117,22 @@ export const FacialAnalysisPanel = ({
       on_save();
     } catch (e) {
       if (e instanceof SyntaxError) {
-        set_error("Invalid JSON in result");
+        set_json_error("Invalid JSON in result");
       } else {
         set_error(e instanceof Error ? e.message : "Failed to save component");
       }
     } finally {
       set_saving(false);
+    }
+  };
+
+  const handle_repair = () => {
+    try {
+      const repaired = jsonrepair(result_text);
+      set_result_text(repaired);
+      set_json_error(null);
+    } catch {
+      set_json_error("Could not repair JSON");
     }
   };
 
@@ -202,9 +218,21 @@ export const FacialAnalysisPanel = ({
                 <>
                   <Textarea
                     value={result_text}
-                    onChange={(e) => set_result_text(e.target.value)}
+                    onChange={(e) => {
+                      set_result_text(e.target.value);
+                      set_json_error(null);
+                    }}
                     className="flex-1 font-mono text-xs resize-none min-h-0"
                   />
+                  {json_error && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <p className="text-sm text-destructive">{json_error}</p>
+                      <Button variant="outline" size="sm" onClick={handle_repair}>
+                        <Wrench className="size-3 mr-1" />
+                        Repair
+                      </Button>
+                    </div>
+                  )}
                   <div className="space-y-4 mt-4">
                     <div className="space-y-2">
                       <Label htmlFor="component-name">Component Name</Label>
