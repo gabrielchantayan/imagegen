@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { SettingsDropdown } from "./settings-dropdown";
 import { use_builder_store } from "@/lib/stores/builder-store";
 import { submit_generation } from "@/lib/hooks/use-generation";
-import { Sparkles, Save, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Sparkles, Save, Trash2, History } from "lucide-react";
 
 export const BuilderToolbar = () => {
   const clear_builder = use_builder_store((s) => s.clear_builder);
@@ -119,6 +120,13 @@ export const BuilderToolbar = () => {
           <Trash2 className="size-4 mr-2" />
           Clear
         </Button>
+
+        <Link href="/history">
+          <Button variant="ghost">
+            <History className="size-4 mr-2" />
+            History
+          </Button>
+        </Link>
       </div>
 
       <div className="flex items-center gap-4">

@@ -66,3 +66,7 @@ export type Favorite = {
   generation_id: string;
   created_at: string;
 };
+
+export type GenerationWithFavorite = Generation & {
+  is_favorite: boolean;
+};
