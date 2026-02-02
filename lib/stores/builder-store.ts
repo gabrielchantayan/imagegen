@@ -108,10 +108,12 @@ const SHARED_CATEGORY_MAPPING: Record<string, string> = {
 };
 
 // Hardcoded defaults
-const DEFAULT_LOOK = {
-  texture: "modern phone camera; mild JPEG artifacts",
-  color: "perfect white balance",
-};
+// const DEFAULT_LOOK = {
+//   texture: "modern phone camera; mild JPEG artifacts",
+//   color: "perfect white balance",
+// };
+
+const DEFAULT_LOOK = {};
 
 const DEFAULT_STYLE = {
   authenticity: "imperfect candid moment",
