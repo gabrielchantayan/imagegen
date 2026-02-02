@@ -43,24 +43,31 @@ export const ImagePreview = () => {
 
   if (generation_status === "completed" && last_generated_image) {
     return (
-      <div className="h-full flex flex-col p-4 min-h-0">
-        <div className="flex-1 flex items-center justify-center relative min-h-0 overflow-hidden">
+      <div className="h-full w-full relative bg-muted/20 group">
+        <div className="absolute inset-0 flex items-center justify-center p-4">
           <img
             src={last_generated_image}
             alt="Generated image"
-            className="max-h-full max-w-full object-contain rounded-lg"
+            className="max-h-full max-w-full object-contain rounded-lg shadow-sm"
           />
         </div>
-        <div className="flex justify-center gap-2 mt-4">
+
+        {/* Floating Controls Overlay */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 backdrop-blur-md border border-border/50 p-1.5 rounded-full opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-xl">
           <a
             href={last_generated_image}
             download
-            className="inline-flex items-center justify-center h-8 gap-1.5 px-2.5 rounded-lg border border-border bg-background hover:bg-muted hover:text-foreground text-sm font-medium transition-all"
+            className="inline-flex items-center justify-center h-9 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium transition-colors shadow-sm"
           >
-            <Download className="size-4" />
+            <Download className="size-4 mr-2" />
             Download
           </a>
-          <Button variant="outline" disabled>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 px-4 rounded-full hover:bg-background/80"
+            disabled
+          >
             <RefreshCw className="size-4 mr-2" />
             Regenerate
           </Button>
@@ -71,21 +78,23 @@ export const ImagePreview = () => {
 
   if (last_generated_image) {
     return (
-      <div className="h-full flex flex-col p-4 min-h-0">
-        <div className="flex-1 flex items-center justify-center relative min-h-0 overflow-hidden">
+      <div className="h-full w-full relative bg-muted/20 group">
+        <div className="absolute inset-0 flex items-center justify-center p-4">
           <img
             src={last_generated_image}
             alt="Generated image"
-            className="max-h-full max-w-full object-contain rounded-lg"
+            className="max-h-full max-w-full object-contain rounded-lg shadow-sm"
           />
         </div>
-        <div className="flex justify-center gap-2 mt-4">
+
+        {/* Floating Controls Overlay */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 backdrop-blur-md border border-border/50 p-1.5 rounded-full opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-xl">
           <a
             href={last_generated_image}
             download
-            className="inline-flex items-center justify-center h-8 gap-1.5 px-2.5 rounded-lg border border-border bg-background hover:bg-muted hover:text-foreground text-sm font-medium transition-all"
+            className="inline-flex items-center justify-center h-9 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium transition-colors shadow-sm"
           >
-            <Download className="size-4" />
+            <Download className="size-4 mr-2" />
             Download
           </a>
         </div>
@@ -94,10 +103,14 @@ export const ImagePreview = () => {
   }
 
   return (
-    <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
-      <ImageIcon className="size-12 mb-4" />
-      <p>No image generated yet</p>
-      <p className="text-sm">Select components and click Generate</p>
+    <div className="h-full flex flex-col items-center justify-center text-muted-foreground bg-muted/5">
+      <div className="p-6 rounded-full bg-muted/30 mb-4">
+        <ImageIcon className="size-8 opacity-50" />
+      </div>
+      <p className="font-medium text-foreground">No image generated</p>
+      <p className="text-sm mt-1 max-w-[200px] text-center opacity-70">
+        Build your prompt and hit Generate to see the magic happen
+      </p>
     </div>
   );
 };

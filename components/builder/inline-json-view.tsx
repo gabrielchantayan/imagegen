@@ -12,7 +12,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Code } from "lucide-react";
 
 import type { ConflictInfo, ResolutionStrategy } from "@/lib/stores/builder-store";
 
@@ -251,14 +251,18 @@ export const InlineJsonView = ({
 
   if (!data || Object.keys(data).length === 0) {
     return (
-      <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-        Select components to build your prompt
+      <div className="h-full flex flex-col items-center justify-center text-muted-foreground bg-muted/5">
+         <div className="p-4 rounded-full bg-muted/50 mb-3">
+           <Code className="size-6 opacity-50" />
+         </div>
+         <p className="text-sm font-medium">No data yet</p>
+         <p className="text-xs opacity-70 mt-1">Select components to build your prompt</p>
       </div>
     );
   }
 
   return (
-    <div className="font-mono text-sm leading-relaxed overflow-auto h-full p-4 bg-muted/30 rounded-md border whitespace-pre-wrap break-words">
+    <div className="font-mono text-sm leading-relaxed overflow-auto h-full p-6 bg-card whitespace-pre-wrap break-words">
       <JsonNode
         value={data}
         path=""
