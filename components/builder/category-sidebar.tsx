@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { use_components } from "@/lib/hooks/use-components";
 import { use_builder_store, SHARED_CATEGORIES } from "@/lib/stores/builder-store";
 import { cn } from "@/lib/utils";
-import { ImageIcon, Loader2 } from "lucide-react";
+import { ImageIcon, Loader2, Sparkles } from "lucide-react";
 
 type CategorySidebarProps = {
   className?: string;
@@ -70,7 +70,7 @@ export const CategorySidebar = ({ className }: CategorySidebarProps) => {
 
       <Separator className="my-2" />
 
-      <div className="px-2">
+      <div className="px-2 space-y-1">
         <Button
           variant={active_category === "analyze" ? "secondary" : "ghost"}
           className="w-full justify-start"
@@ -78,6 +78,14 @@ export const CategorySidebar = ({ className }: CategorySidebarProps) => {
         >
           <ImageIcon className="size-4 mr-2" />
           Analyze Image
+        </Button>
+        <Button
+          variant={active_category === "generate" ? "secondary" : "ghost"}
+          className="w-full justify-start"
+          onClick={() => set_active_category("generate")}
+        >
+          <Sparkles className="size-4 mr-2" />
+          Generate Prompt
         </Button>
       </div>
     </div>
