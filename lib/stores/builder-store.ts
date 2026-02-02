@@ -55,7 +55,10 @@ type BuilderState = {
   select_component: (category_id: string, component: Component) => void;
   deselect_component: (category_id: string, component_id: string) => void;
   clear_category: (category_id: string) => void;
-  set_conflict_resolution: (conflict_id: string, resolution: ResolutionStrategy) => void;
+  set_conflict_resolution: (
+    conflict_id: string,
+    resolution: ResolutionStrategy,
+  ) => void;
   add_subject: () => void;
   remove_subject: (subject_id: string) => void;
   set_active_subject: (subject_id: string) => void;
@@ -133,17 +136,25 @@ const combine_strings = (values: string[]): string => {
 };
 
 // Helper to combine object values recursively
-const combine_objects = (objects: Record<string, unknown>[]): Record<string, unknown> => {
+const combine_objects = (
+  objects: Record<string, unknown>[],
+): Record<string, unknown> => {
   const result: Record<string, unknown> = {};
   const all_keys = new Set(objects.flatMap(Object.keys));
 
   for (const key of all_keys) {
-    const values = objects.map((obj) => obj[key]).filter((v) => v !== undefined);
+    const values = objects
+      .map((obj) => obj[key])
+      .filter((v) => v !== undefined);
     if (values.length === 0) continue;
 
     if (values.every((v) => typeof v === "string")) {
       result[key] = combine_strings(values as string[]);
-    } else if (values.every((v) => typeof v === "object" && v !== null && !Array.isArray(v))) {
+    } else if (
+      values.every(
+        (v) => typeof v === "object" && v !== null && !Array.isArray(v),
+      )
+    ) {
       result[key] = combine_objects(values as Record<string, unknown>[]);
     } else {
       // For mixed types or arrays, use last value
@@ -157,7 +168,7 @@ const combine_objects = (objects: Record<string, unknown>[]): Record<string, unk
 // Apply resolution strategy to get final value
 const apply_resolution = (
   values: { value: unknown; source: string }[],
-  resolution: ResolutionStrategy
+  resolution: ResolutionStrategy,
 ): unknown => {
   if (values.length === 0) return undefined;
   if (values.length === 1) return values[0].value;
@@ -170,8 +181,17 @@ const apply_resolution = (
     case "combine":
       if (values.every((v) => typeof v.value === "string")) {
         return combine_strings(values.map((v) => v.value as string));
-      } else if (values.every((v) => typeof v.value === "object" && v.value !== null && !Array.isArray(v.value))) {
-        return combine_objects(values.map((v) => v.value as Record<string, unknown>));
+      } else if (
+        values.every(
+          (v) =>
+            typeof v.value === "object" &&
+            v.value !== null &&
+            !Array.isArray(v.value),
+        )
+      ) {
+        return combine_objects(
+          values.map((v) => v.value as Record<string, unknown>),
+        );
       }
       // Fall back to last value for unsupported types
       return values[values.length - 1].value;
@@ -183,7 +203,7 @@ type FieldValues = Map<string, { value: unknown; source: string }[]>;
 const collect_field_values = (
   fields: FieldValues,
   data: Record<string, unknown>,
-  source: string
+  source: string,
 ): void => {
   for (const [key, value] of Object.entries(data)) {
     if (!fields.has(key)) {
@@ -197,7 +217,7 @@ const resolve_fields = (
   fields: FieldValues,
   resolutions: Record<string, ResolutionStrategy>,
   section_prefix: string,
-  conflicts: ConflictInfo[]
+  conflicts: ConflictInfo[],
 ): Record<string, unknown> => {
   const result: Record<string, unknown> = {};
 
@@ -208,7 +228,9 @@ const resolve_fields = (
     // Detect conflicts (more than one unique value)
     const unique_values = values.filter(
       (v, i, arr) =>
-        arr.findIndex((a) => JSON.stringify(a.value) === JSON.stringify(v.value)) === i
+        arr.findIndex(
+          (a) => JSON.stringify(a.value) === JSON.stringify(v.value),
+        ) === i,
     );
 
     if (unique_values.length > 1) {
@@ -216,7 +238,10 @@ const resolve_fields = (
       conflicts.push({
         id: conflict_id,
         field: key,
-        values: values.map((v) => ({ value: String(v.value), source: v.source })),
+        values: values.map((v) => ({
+          value: String(v.value),
+          source: v.source,
+        })),
         resolved_value: String(resolved_value),
       });
       result[key] = resolved_value;
@@ -231,7 +256,7 @@ const resolve_fields = (
 const compose_subject_sections = (
   selections: Record<string, Component[]>,
   resolutions: Record<string, ResolutionStrategy>,
-  conflicts: ConflictInfo[]
+  conflicts: ConflictInfo[],
 ): SubjectSections => {
   const body_fields: FieldValues = new Map();
   const wardrobe_fields: FieldValues = new Map();
@@ -252,7 +277,9 @@ const compose_subject_sections = (
   }
 
   // Process wardrobe piece categories (override specific fields)
-  for (const [category_id, field_name] of Object.entries(WARDROBE_PIECE_MAPPING)) {
+  for (const [category_id, field_name] of Object.entries(
+    WARDROBE_PIECE_MAPPING,
+  )) {
     const components = selections[category_id] ?? [];
     for (const component of components) {
       // If component has the specific field, use it; otherwise merge all data
@@ -260,7 +287,7 @@ const compose_subject_sections = (
         collect_field_values(
           wardrobe_fields,
           { [field_name]: component.data[field_name] },
-          component.name
+          component.name,
         );
 
         // For bottoms, also include belt if present
@@ -268,7 +295,7 @@ const compose_subject_sections = (
           collect_field_values(
             wardrobe_fields,
             { belt: component.data["belt"] },
-            component.name
+            component.name,
           );
         }
       } else {
@@ -285,7 +312,12 @@ const compose_subject_sections = (
 
   // Resolve all fields with their resolutions
   const body = resolve_fields(body_fields, resolutions, "body", conflicts);
-  const wardrobe = resolve_fields(wardrobe_fields, resolutions, "wardrobe", conflicts);
+  const wardrobe = resolve_fields(
+    wardrobe_fields,
+    resolutions,
+    "wardrobe",
+    conflicts,
+  );
   const pose = resolve_fields(pose_fields, resolutions, "pose", conflicts);
 
   return { body, wardrobe, pose };
@@ -294,7 +326,7 @@ const compose_subject_sections = (
 const compose_prompt = (
   subjects: Subject[],
   shared_selections: Record<string, Component[]>,
-  resolutions: Record<string, ResolutionStrategy>
+  resolutions: Record<string, ResolutionStrategy>,
 ): { prompt: Record<string, unknown>; conflicts: ConflictInfo[] } => {
   const conflicts: ConflictInfo[] = [];
   const prompt: Record<string, unknown> = {};
@@ -303,7 +335,11 @@ const compose_prompt = (
   const subject_sections: SubjectSections[] = [];
 
   for (const subject of subjects) {
-    const sections = compose_subject_sections(subject.selections, resolutions, conflicts);
+    const sections = compose_subject_sections(
+      subject.selections,
+      resolutions,
+      conflicts,
+    );
     if (
       Object.keys(sections.body).length > 0 ||
       Object.keys(sections.wardrobe).length > 0 ||
@@ -351,9 +387,15 @@ const compose_prompt = (
 
     if (components.length === 1) {
       const component = components[0];
-      if (typeof component.data === "object" && !Array.isArray(component.data)) {
+      if (
+        typeof component.data === "object" &&
+        !Array.isArray(component.data)
+      ) {
         const data_keys = Object.keys(component.data);
-        if (data_keys.length === 1 && typeof component.data[data_keys[0]] === "string") {
+        if (
+          data_keys.length === 1 &&
+          typeof component.data[data_keys[0]] === "string"
+        ) {
           prompt[prompt_key] = component.data[data_keys[0]];
         } else {
           prompt[prompt_key] = component.data;
@@ -365,11 +407,19 @@ const compose_prompt = (
       // Multiple components - collect and resolve fields
       const shared_fields: FieldValues = new Map();
       for (const component of components) {
-        if (typeof component.data === "object" && !Array.isArray(component.data)) {
+        if (
+          typeof component.data === "object" &&
+          !Array.isArray(component.data)
+        ) {
           collect_field_values(shared_fields, component.data, component.name);
         }
       }
-      const resolved = resolve_fields(shared_fields, resolutions, `shared.${category_id}`, conflicts);
+      const resolved = resolve_fields(
+        shared_fields,
+        resolutions,
+        `shared.${category_id}`,
+        conflicts,
+      );
       if (Object.keys(resolved).length > 0) {
         prompt[prompt_key] = resolved;
       }
@@ -393,9 +443,12 @@ export const use_builder_store = create<BuilderState>()(
         const { prompt, conflicts } = compose_prompt(
           state.subjects,
           state.shared_selections,
-          state.conflict_resolutions
+          state.conflict_resolutions,
         );
-        set({ composed_prompt: Object.keys(prompt).length > 0 ? prompt : null, conflicts });
+        set({
+          composed_prompt: Object.keys(prompt).length > 0 ? prompt : null,
+          conflicts,
+        });
       };
 
       const initial_subject = create_empty_subject();
@@ -460,7 +513,10 @@ export const use_builder_store = create<BuilderState>()(
                   ? current.filter((c) => c.id !== component.id)
                   : [...current, component];
 
-                return { ...s, selections: { ...s.selections, [category_id]: updated } };
+                return {
+                  ...s,
+                  selections: { ...s.selections, [category_id]: updated },
+                };
               }),
             });
           }
@@ -470,8 +526,9 @@ export const use_builder_store = create<BuilderState>()(
 
           // Track usage for stats (only when adding)
           const current_selection = SHARED_CATEGORIES.includes(category_id)
-            ? state.shared_selections[category_id] ?? []
-            : state.subjects.find((s) => s.id === state.active_subject_id)?.selections[category_id] ?? [];
+            ? (state.shared_selections[category_id] ?? [])
+            : (state.subjects.find((s) => s.id === state.active_subject_id)
+                ?.selections[category_id] ?? []);
 
           if (!current_selection.some((c) => c.id === component.id)) {
             fetch("/api/stats/track", {
@@ -535,7 +592,7 @@ export const use_builder_store = create<BuilderState>()(
               subjects: state.subjects.map((s) =>
                 s.id === subject_id
                   ? { ...s, selections: { ...s.selections, [category_id]: [] } }
-                  : s
+                  : s,
               ),
             });
           }
@@ -563,7 +620,9 @@ export const use_builder_store = create<BuilderState>()(
 
         remove_subject: (subject_id) => {
           set((state) => {
-            const new_subjects = state.subjects.filter((s) => s.id !== subject_id);
+            const new_subjects = state.subjects.filter(
+              (s) => s.id !== subject_id,
+            );
             if (new_subjects.length === 0) {
               new_subjects.push(create_empty_subject());
             }
@@ -645,15 +704,19 @@ export const use_builder_store = create<BuilderState>()(
           // Migrate from single selection to array
           // Convert subjects.selections from Record<string, Component | null> to Record<string, Component[]>
           if (state.subjects) {
-            state.subjects = state.subjects.map((subject: { id: string; selections: Record<string, unknown> }) => ({
-              ...subject,
-              selections: Object.fromEntries(
-                Object.entries(subject.selections || {}).map(([key, value]) => [
-                  key,
-                  value ? [value] : [],
-                ])
-              ),
-            }));
+            state.subjects = state.subjects.map(
+              (subject: {
+                id: string;
+                selections: Record<string, unknown>;
+              }) => ({
+                ...subject,
+                selections: Object.fromEntries(
+                  Object.entries(subject.selections || {}).map(
+                    ([key, value]) => [key, value ? [value] : []],
+                  ),
+                ),
+              }),
+            );
           }
 
           // Convert shared_selections from Record<string, Component | null> to Record<string, Component[]>
@@ -662,7 +725,7 @@ export const use_builder_store = create<BuilderState>()(
               Object.entries(state.shared_selections).map(([key, value]) => [
                 key,
                 value ? [value] : [],
-              ])
+              ]),
             );
           }
 
@@ -674,12 +737,18 @@ export const use_builder_store = create<BuilderState>()(
 
         return state as BuilderState;
       },
-    }
-  )
+    },
+  ),
 );
 
 // Export types for use elsewhere
-export type { Subject, GenerationSettings, ConflictInfo, BuilderState, ResolutionStrategy };
+export type {
+  Subject,
+  GenerationSettings,
+  ConflictInfo,
+  BuilderState,
+  ResolutionStrategy,
+};
 
 // Export constants
 export { SHARED_CATEGORIES };
