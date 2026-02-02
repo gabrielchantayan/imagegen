@@ -238,6 +238,17 @@ export const use_builder_store = create<BuilderState>()(
 
           // Recompute prompt and conflicts
           recompute_prompt();
+
+          // Track usage for stats
+          if (component) {
+            fetch("/api/stats/track", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ component_id: component.id }),
+            }).catch(() => {
+              // Silent fail - tracking is non-critical
+            });
+          }
         },
 
         add_subject: () => {
