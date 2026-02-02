@@ -83,17 +83,15 @@ const DEFAULT_SETTINGS: GenerationSettings = {
   google_search: false,
 };
 
-// Category order for merging components
-const CATEGORY_ORDER = [
-  "characters",
-  "physical_traits",
-  "jewelry",
-  "wardrobe",
-  "wardrobe_tops",
-  "wardrobe_bottoms",
-  "wardrobe_footwear",
-  "poses",
-];
+// Categories that contribute to body/subject
+const BODY_CATEGORIES = ["characters", "physical_traits", "jewelry"];
+
+// Mapping for wardrobe piece categories to their field
+const WARDROBE_PIECE_MAPPING: Record<string, string> = {
+  wardrobe_tops: "top",
+  wardrobe_bottoms: "bottom",
+  wardrobe_footwear: "footwear",
+};
 
 // Mapping from category ID to prompt key
 const SHARED_CATEGORY_MAPPING: Record<string, string> = {
@@ -103,6 +101,102 @@ const SHARED_CATEGORY_MAPPING: Record<string, string> = {
   ban_lists: "ban",
 };
 
+// Hardcoded defaults
+const DEFAULT_LOOK = {
+  texture: "modern phone camera; mild JPEG artifacts",
+  color: "perfect white balance",
+};
+
+const DEFAULT_STYLE = {
+  authenticity: "imperfect candid moment",
+};
+
+type SubjectSections = {
+  body: Record<string, unknown>;
+  wardrobe: Record<string, unknown>;
+  pose: Record<string, unknown>;
+};
+
+const merge_with_conflicts = (
+  target: Record<string, unknown>,
+  fields: Map<string, { value: unknown; source: string }>,
+  data: Record<string, unknown>,
+  source: string,
+  conflicts: ConflictInfo[]
+): void => {
+  for (const [key, value] of Object.entries(data)) {
+    const existing = fields.get(key);
+    if (existing && JSON.stringify(existing.value) !== JSON.stringify(value)) {
+      conflicts.push({
+        field: key,
+        existing_value: String(existing.value),
+        new_value: String(value),
+        source,
+      });
+    }
+    target[key] = value;
+    fields.set(key, { value, source });
+  }
+};
+
+const compose_subject_sections = (
+  selections: Record<string, Component | null>,
+  conflicts: ConflictInfo[]
+): SubjectSections => {
+  const body: Record<string, unknown> = {};
+  const wardrobe: Record<string, unknown> = {};
+  const pose: Record<string, unknown> = {};
+
+  const body_fields = new Map<string, { value: unknown; source: string }>();
+  const wardrobe_fields = new Map<string, { value: unknown; source: string }>();
+  const pose_fields = new Map<string, { value: unknown; source: string }>();
+
+  // Process body categories (characters, physical_traits, jewelry)
+  for (const category_id of BODY_CATEGORIES) {
+    const component = selections[category_id];
+    if (!component) continue;
+    merge_with_conflicts(body, body_fields, component.data, component.name, conflicts);
+  }
+
+  // Process wardrobe category (full wardrobe)
+  const wardrobe_component = selections["wardrobe"];
+  if (wardrobe_component) {
+    merge_with_conflicts(wardrobe, wardrobe_fields, wardrobe_component.data, wardrobe_component.name, conflicts);
+  }
+
+  // Process wardrobe piece categories (override specific fields)
+  for (const [category_id, field_name] of Object.entries(WARDROBE_PIECE_MAPPING)) {
+    const component = selections[category_id];
+    if (!component) continue;
+
+    // If component has the specific field, use it; otherwise merge all data
+    if (field_name in component.data) {
+      const existing = wardrobe_fields.get(field_name);
+      const value = component.data[field_name];
+      if (existing && JSON.stringify(existing.value) !== JSON.stringify(value)) {
+        conflicts.push({
+          field: field_name,
+          existing_value: String(existing.value),
+          new_value: String(value),
+          source: component.name,
+        });
+      }
+      wardrobe[field_name] = value;
+      wardrobe_fields.set(field_name, { value, source: component.name });
+    } else {
+      merge_with_conflicts(wardrobe, wardrobe_fields, component.data, component.name, conflicts);
+    }
+  }
+
+  // Process poses category
+  const poses_component = selections["poses"];
+  if (poses_component) {
+    merge_with_conflicts(pose, pose_fields, poses_component.data, poses_component.name, conflicts);
+  }
+
+  return { body, wardrobe, pose };
+};
+
 const compose_prompt = (
   subjects: Subject[],
   shared_selections: Record<string, Component | null>
@@ -110,48 +204,48 @@ const compose_prompt = (
   const conflicts: ConflictInfo[] = [];
   const prompt: Record<string, unknown> = {};
 
-  // Build subjects array
-  const subject_data: Record<string, unknown>[] = [];
+  // Build subject sections
+  const subject_sections: SubjectSections[] = [];
 
   for (const subject of subjects) {
-    const subject_prompt: Record<string, unknown> = {};
-    const processed_fields = new Map<string, { value: unknown; source: string }>();
-
-    // Apply selections in order of category
-    for (const category_id of CATEGORY_ORDER) {
-      const component = subject.selections[category_id];
-      if (!component) continue;
-
-      // Merge component data into subject prompt
-      for (const [key, value] of Object.entries(component.data)) {
-        const existing = processed_fields.get(key);
-
-        if (existing && JSON.stringify(existing.value) !== JSON.stringify(value)) {
-          // Conflict detected
-          conflicts.push({
-            field: key,
-            existing_value: String(existing.value),
-            new_value: String(value),
-            source: component.name,
-          });
-        }
-
-        // Later selections override earlier ones
-        subject_prompt[key] = value;
-        processed_fields.set(key, { value, source: component.name });
-      }
-    }
-
-    if (Object.keys(subject_prompt).length > 0) {
-      subject_data.push(subject_prompt);
+    const sections = compose_subject_sections(subject.selections, conflicts);
+    if (
+      Object.keys(sections.body).length > 0 ||
+      Object.keys(sections.wardrobe).length > 0 ||
+      Object.keys(sections.pose).length > 0
+    ) {
+      subject_sections.push(sections);
     }
   }
 
-  // Set subject(s)
-  if (subject_data.length === 1) {
-    prompt.subject = subject_data[0];
-  } else if (subject_data.length > 1) {
-    prompt.subjects = subject_data;
+  // Set subject(s) based on count
+  if (subject_sections.length === 1) {
+    // Single subject: body goes to "subject", wardrobe and pose are top-level
+    const { body, wardrobe, pose } = subject_sections[0];
+    if (Object.keys(body).length > 0) {
+      prompt.subject = body;
+    }
+    if (Object.keys(wardrobe).length > 0) {
+      prompt.wardrobe = wardrobe;
+    }
+    if (Object.keys(pose).length > 0) {
+      prompt.pose = pose;
+    }
+  } else if (subject_sections.length > 1) {
+    // Multiple subjects: each has nested body, wardrobe, pose
+    prompt.subjects = subject_sections.map(({ body, wardrobe, pose }) => {
+      const subject_obj: Record<string, unknown> = {};
+      if (Object.keys(body).length > 0) {
+        subject_obj.body = body;
+      }
+      if (Object.keys(wardrobe).length > 0) {
+        subject_obj.wardrobe = wardrobe;
+      }
+      if (Object.keys(pose).length > 0) {
+        subject_obj.pose = pose;
+      }
+      return subject_obj;
+    });
   }
 
   // Apply shared selections
@@ -160,14 +254,22 @@ const compose_prompt = (
 
     const prompt_key = SHARED_CATEGORY_MAPPING[category_id] || category_id;
 
-    // Merge component data
     if (typeof component.data === "object" && !Array.isArray(component.data)) {
-      for (const [key, value] of Object.entries(component.data)) {
-        prompt[key] = value;
+      const data_keys = Object.keys(component.data);
+      if (data_keys.length === 1 && typeof component.data[data_keys[0]] === "string") {
+        prompt[prompt_key] = component.data[data_keys[0]];
+      } else {
+        prompt[prompt_key] = component.data;
       }
     } else {
       prompt[prompt_key] = component.data;
     }
+  }
+
+  // Add hardcoded defaults (only if we have any subject data)
+  if (subject_sections.length > 0) {
+    prompt.look = DEFAULT_LOOK;
+    prompt.style = DEFAULT_STYLE;
   }
 
   return { prompt, conflicts };
