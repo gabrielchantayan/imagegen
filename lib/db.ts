@@ -1,15 +1,15 @@
-import { Database } from "bun:sqlite";
+import Database from "better-sqlite3";
 import path from "path";
 
 const db_path = path.join(process.cwd(), "data", "prompt-builder.db");
 
-let db: Database | null = null;
+let db: Database.Database | null = null;
 
-export const get_db = (): Database => {
+export const get_db = (): Database.Database => {
   if (!db) {
-    db = new Database(db_path, { create: true });
-    db.exec("PRAGMA journal_mode = WAL");
-    db.exec("PRAGMA foreign_keys = ON");
+    db = new Database(db_path);
+    db.pragma("journal_mode = WAL");
+    db.pragma("foreign_keys = ON");
   }
   return db;
 };

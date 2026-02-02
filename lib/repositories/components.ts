@@ -1,5 +1,6 @@
-import type { SQLQueryBindings } from 'bun:sqlite';
 import { get_db, generate_id } from '../db';
+
+type BindValue = string | number | bigint | Buffer | null;
 import { now } from '../db-helpers';
 import type { Component, Category } from '../types/database';
 
@@ -94,7 +95,7 @@ export const update_component = (id: string, input: UpdateComponentInput): Compo
   if (!existing) return null;
 
   const updates: string[] = [];
-  const values: SQLQueryBindings[] = [];
+  const values: BindValue[] = [];
 
   if (input.name !== undefined) {
     updates.push('name = ?');

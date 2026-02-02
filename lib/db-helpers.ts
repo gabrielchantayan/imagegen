@@ -1,6 +1,6 @@
-import type { SQLQueryBindings } from "bun:sqlite";
-
 import { get_db } from "./db";
+
+type BindValue = string | number | bigint | Buffer | null;
 
 export const parse_json = <T>(value: string | null): T | null => {
   if (!value) return null;
@@ -27,7 +27,7 @@ export type PaginatedResult<T> = {
 export const paginate = <T>(
   query: string,
   count_query: string,
-  params: SQLQueryBindings[],
+  params: BindValue[],
   options: PaginationOptions
 ): PaginatedResult<T> => {
   const db = get_db();
