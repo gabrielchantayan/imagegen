@@ -12,8 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Sparkles, Save, Copy } from "lucide-react";
+import { Loader2, Sparkles, Save, Copy, X } from "lucide-react";
 import {
   use_components,
   create_component_api,
@@ -114,46 +113,61 @@ export const GeneratePanel = () => {
   };
 
   return (
-    <div className="flex gap-4 p-4 h-full">
+    <div className="flex gap-6 p-6 h-full bg-muted/5">
       {/* Left: Input area */}
-      <div className="flex flex-col gap-4 w-1/2">
-        <div className="space-y-2">
-          <Label htmlFor="category">Category</Label>
-          <Select
-            value={category}
-            onValueChange={(value) => set_category(value ?? "")}
-          >
-            <SelectTrigger id="category">
-              <SelectValue placeholder="Select a category..." />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORY_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="flex flex-col gap-6 w-1/2">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Generate Prompt</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Describe what you want and AI will generate the component JSON
+          </p>
         </div>
 
-        <div className="flex flex-col flex-1 space-y-2">
-          <Label htmlFor="description">Describe what you want</Label>
-          <Textarea
-            id="description"
-            value={description}
-            onChange={(e) => set_description(e.target.value)}
-            placeholder="e.g., dining table outside italian restaurant overlooking the seaside"
-            className="flex-1 resize-none"
-          />
-          <p className="text-xs text-muted-foreground">
-            {description.length}/5000 characters
-          </p>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="category" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Target Category
+            </Label>
+            <Select
+              value={category}
+              onValueChange={(value) => set_category(value ?? "")}
+            >
+              <SelectTrigger id="category" className="h-10 bg-background">
+                <SelectValue placeholder="Select a category..." />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col flex-1 space-y-2">
+            <Label htmlFor="description" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Description
+            </Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => set_description(e.target.value)}
+              placeholder="e.g., dining table outside italian restaurant overlooking the seaside"
+              className="flex-1 resize-none min-h-[160px] bg-background p-4 leading-relaxed"
+            />
+            <div className="flex justify-end">
+              <span className="text-xs text-muted-foreground/60">
+                {description.length}/5000
+              </span>
+            </div>
+          </div>
         </div>
 
         <Button
           onClick={handle_generate}
           disabled={!category || !description.trim() || generating}
-          className="w-full"
+          className="w-full h-10 shadow-sm mt-auto"
         >
           {generating ? (
             <>
@@ -163,7 +177,7 @@ export const GeneratePanel = () => {
           ) : (
             <>
               <Sparkles className="mr-2 size-4" />
-              Generate
+              Generate Prompt
             </>
           )}
         </Button>
@@ -171,70 +185,87 @@ export const GeneratePanel = () => {
 
       {/* Right: Results */}
       <div className="flex flex-col w-1/2">
-        <Card className="flex flex-col flex-1">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Generated Prompt</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col flex-1 min-h-0">
-            {error && <p className="mb-4 text-destructive">{error}</p>}
+         <div className="mb-4">
+          <h2 className="text-lg font-semibold tracking-tight">Output</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Generated JSON result
+          </p>
+        </div>
 
-            {save_success && (
-              <p className="mb-4 text-green-600">Preset saved successfully!</p>
-            )}
-
-            {result ? (
-              <>
+        <div className="flex flex-col flex-1 min-h-0 bg-card rounded-xl border shadow-sm p-1">
+          {error ? (
+             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+              <div className="size-12 rounded-full bg-destructive/10 flex items-center justify-center mb-3">
+                <X className="size-6 text-destructive" />
+              </div>
+              <p className="text-destructive font-medium">{error}</p>
+            </div>
+          ) : result ? (
+            <>
+               <div className="flex-1 relative">
+                {save_success && (
+                  <div className="absolute top-2 right-2 z-10 bg-green-500/10 text-green-600 text-xs font-medium px-2 py-1 rounded-md border border-green-500/20 flex items-center animate-in fade-in slide-in-from-top-1">
+                    Preset saved!
+                  </div>
+                )}
                 <Textarea
                   value={JSON.stringify(result, null, 2)}
                   readOnly
-                  className="flex-1 font-mono text-xs resize-none"
+                  className="w-full h-full font-mono text-xs resize-none border-0 shadow-none focus-visible:ring-0 p-4 leading-relaxed bg-transparent"
                 />
-                <div className="mt-4 space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="preset-name">Preset Name</Label>
-                    <Input
-                      id="preset-name"
-                      value={preset_name}
-                      onChange={(e) => set_preset_name(e.target.value)}
-                      placeholder="Enter a name for this preset"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handle_save}
-                      disabled={!preset_name.trim() || saving}
-                      className="flex-1"
-                    >
-                      {saving ? (
-                        <Loader2 className="mr-2 animate-spin size-4" />
-                      ) : (
-                        <Save className="mr-2 size-4" />
-                      )}
-                      Save as Preset
-                    </Button>
-                    <Button variant="outline" onClick={handle_copy}>
-                      <Copy className="size-4" />
-                    </Button>
-                    <Button variant="outline" onClick={handle_clear}>
-                      Clear
-                    </Button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="flex flex-1 justify-center items-center text-muted-foreground">
-                {generating ? (
-                  <div className="text-center">
-                    <Loader2 className="mx-auto mb-2 animate-spin size-8" />
-                    <p>Generating prompt...</p>
-                  </div>
-                ) : (
-                  <p>Select a category and describe what you want</p>
-                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+
+              <div className="p-4 border-t bg-muted/10 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="preset-name" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Preset Name
+                  </Label>
+                  <Input
+                    id="preset-name"
+                    value={preset_name}
+                    onChange={(e) => set_preset_name(e.target.value)}
+                    placeholder="Enter a name for this preset"
+                    className="h-9 bg-background"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handle_save}
+                    disabled={!preset_name.trim() || saving}
+                    className="flex-1 h-9"
+                  >
+                    {saving ? (
+                      <Loader2 className="mr-2 animate-spin size-4" />
+                    ) : (
+                      <Save className="mr-2 size-4" />
+                    )}
+                    Save as Preset
+                  </Button>
+                  <Button variant="outline" onClick={handle_copy} className="h-9 px-3">
+                    <Copy className="size-4" />
+                  </Button>
+                  <Button variant="ghost" onClick={handle_clear} className="h-9">
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+             <div className="flex flex-1 justify-center items-center text-muted-foreground bg-muted/5 rounded-lg m-1 border border-dashed border-muted-foreground/10">
+              {generating ? (
+                <div className="text-center">
+                  <Loader2 className="mx-auto mb-4 animate-spin size-10 text-primary" />
+                  <p className="font-medium text-foreground">Generating JSON...</p>
+                   <p className="text-sm opacity-70 mt-1">Interpreting your description</p>
+                </div>
+              ) : (
+                <div className="text-center max-w-[240px]">
+                   <p className="text-sm">Select a category and describe your idea to generate a starting point</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -84,47 +84,59 @@ export const AnalyzePanel = ({ on_save_as_presets }: AnalyzePanelProps) => {
   };
 
   return (
-    <div className="h-full flex gap-4 p-4">
+    <div className="h-full flex gap-6 p-6 bg-muted/5">
       {/* Left: Upload area */}
       <div className="w-1/2 flex flex-col">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold tracking-tight">Analyze Image</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Upload an image to extract its prompt components
+          </p>
+        </div>
+
         <div
           {...getRootProps()}
-          className={`flex-1 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer transition-colors ${
+          className={`flex-1 border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200 ${
             isDragActive
-              ? "border-primary bg-primary/5"
-              : "border-muted-foreground/25 hover:border-primary/50"
+              ? "border-primary bg-primary/5 scale-[0.99]"
+              : "border-muted-foreground/20 hover:border-primary/50 hover:bg-muted/30"
           }`}
         >
           <input {...getInputProps()} />
           {preview ? (
-            <div className="relative w-full h-full p-4">
-              <Image
-                src={preview}
-                alt="Preview"
-                fill
-                className="object-contain"
-              />
+            <div className="relative w-full h-full p-6">
+              <div className="relative w-full h-full rounded-lg overflow-hidden shadow-sm border bg-background/50">
+                <Image
+                  src={preview}
+                  alt="Preview"
+                  fill
+                  className="object-contain"
+                />
+              </div>
             </div>
           ) : (
             <div className="text-center p-8">
-              <Upload className="size-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">
-                {isDragActive
-                  ? "Drop the image here..."
-                  : "Drag and drop an image, or click to select"}
+              <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                <Upload className="size-8 text-muted-foreground/60" />
+              </div>
+              <p className="font-medium text-foreground">
+                {isDragActive ? "Drop image now" : "Click to upload"}
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Max 10MB. JPEG, PNG, WebP, GIF
+              <p className="text-sm text-muted-foreground mt-1 mb-2">
+                or drag and drop here
+              </p>
+              <p className="text-xs text-muted-foreground/60 uppercase tracking-wider font-medium">
+                JPEG, PNG, WEBP, GIF (MAX 10MB)
               </p>
             </div>
           )}
         </div>
 
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-3 mt-6">
           <Button
             onClick={handle_analyze}
             disabled={!file || analyzing}
-            className="flex-1"
+            className="flex-1 h-10 shadow-sm"
           >
             {analyzing ? (
               <>
@@ -132,10 +144,15 @@ export const AnalyzePanel = ({ on_save_as_presets }: AnalyzePanelProps) => {
                 Analyzing...
               </>
             ) : (
-              "Analyze"
+              "Start Analysis"
             )}
           </Button>
-          <Button variant="outline" onClick={handle_clear} disabled={!file}>
+          <Button
+            variant="outline"
+            onClick={handle_clear}
+            disabled={!file}
+            className="h-10 px-4"
+          >
             <X className="size-4" />
           </Button>
         </div>
@@ -143,46 +160,56 @@ export const AnalyzePanel = ({ on_save_as_presets }: AnalyzePanelProps) => {
 
       {/* Right: Results */}
       <div className="w-1/2 flex flex-col">
-        <Card className="flex-1 flex flex-col">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Analysis Result</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col min-h-0">
-            {error && <p className="text-destructive mb-4">{error}</p>}
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold tracking-tight">Results</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Extracted components will appear here
+          </p>
+        </div>
 
-            {result ? (
-              <>
-                <Textarea
-                  value={JSON.stringify(result, null, 2)}
-                  readOnly
-                  className="flex-1 font-mono text-xs resize-none"
-                />
-                <div className="flex gap-2 mt-4">
-                  <Button
-                    onClick={() => on_save_as_presets(result)}
-                    className="flex-1"
-                  >
-                    Save as Presets
-                  </Button>
-                  <Button variant="outline" onClick={handle_copy}>
-                    <Copy className="size-4" />
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                {analyzing ? (
-                  <div className="text-center">
-                    <Loader2 className="size-8 animate-spin mx-auto mb-2" />
-                    <p>Analyzing image...</p>
-                  </div>
-                ) : (
-                  <p>Upload and analyze an image to see results</p>
-                )}
+        <div className="flex-1 flex flex-col min-h-0 bg-card rounded-xl border shadow-sm p-1">
+          {error ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+              <div className="size-12 rounded-full bg-destructive/10 flex items-center justify-center mb-3">
+                <X className="size-6 text-destructive" />
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <p className="text-destructive font-medium">{error}</p>
+            </div>
+          ) : result ? (
+            <>
+              <Textarea
+                value={JSON.stringify(result, null, 2)}
+                readOnly
+                className="flex-1 font-mono text-xs resize-none border-0 shadow-none focus-visible:ring-0 p-4 leading-relaxed"
+              />
+              <div className="p-3 border-t bg-muted/10 flex gap-2">
+                <Button
+                  onClick={() => on_save_as_presets(result)}
+                  className="flex-1 h-9"
+                >
+                  Save as Presets
+                </Button>
+                <Button variant="outline" onClick={handle_copy} className="h-9 px-3">
+                  <Copy className="size-4" />
+                </Button>
+              </div>
+            </>
+          ) : (
+             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-muted/5 rounded-lg m-1 border border-dashed border-muted-foreground/10">
+              {analyzing ? (
+                <div className="text-center">
+                  <Loader2 className="size-10 animate-spin mx-auto mb-4 text-primary" />
+                  <p className="font-medium text-foreground">Analyzing image details...</p>
+                  <p className="text-sm opacity-70 mt-1">This may take a moment</p>
+                </div>
+              ) : (
+                <div className="text-center max-w-[240px]">
+                   <p className="text-sm">Upload an image to see the extracted JSON structure here</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
