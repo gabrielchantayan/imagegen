@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 import type { GenerationWithFavorite } from "@/lib/types/database";
 
-type SortOption = "newest" | "oldest" | "most_used";
+type SortOption = "newest" | "oldest";
 
 type DatePreset = "all" | "today" | "week" | "month" | "custom";
 

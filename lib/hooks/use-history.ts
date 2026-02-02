@@ -10,6 +10,10 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 type HistoryOptions = {
   favorites_only?: boolean;
   search?: string;
+  tags?: string[];
+  date_from?: string;
+  date_to?: string;
+  sort?: "newest" | "oldest";
 };
 
 export const use_history = (options: HistoryOptions = {}) => {
@@ -19,6 +23,12 @@ export const use_history = (options: HistoryOptions = {}) => {
     params.set("limit", "24");
     if (options.favorites_only) params.set("favorites", "true");
     if (options.search) params.set("search", options.search);
+    if (options.tags && options.tags.length > 0) {
+      params.set("tags", options.tags.join(","));
+    }
+    if (options.date_from) params.set("date_from", options.date_from);
+    if (options.date_to) params.set("date_to", options.date_to);
+    if (options.sort) params.set("sort", options.sort);
     return `/api/history?${params}`;
   };
 

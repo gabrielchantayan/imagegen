@@ -109,65 +109,64 @@ export const HistoryFilterSidebar = ({
   if (collapsed) {
     return (
       <div className="w-12 border-r flex flex-col items-center py-4 gap-2 shrink-0">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={toggle_sidebar}>
-              <ChevronRight className="size-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right">Expand filters</TooltipContent>
-        </Tooltip>
+        <Button variant="ghost" size="icon" onClick={toggle_sidebar}>
+          <ChevronRight className="size-4" />
+        </Button>
 
         <Separator className="my-2" />
 
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={filters.search ? "secondary" : "ghost"}
-              size="icon"
-              onClick={toggle_sidebar}
-            >
-              <Search className="size-4" />
-            </Button>
+          <TooltipTrigger
+            className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 size-9 ${
+              filters.search
+                ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                : "hover:bg-accent hover:text-accent-foreground"
+            }`}
+            onClick={toggle_sidebar}
+          >
+            <Search className="size-4" />
           </TooltipTrigger>
           <TooltipContent side="right">Search</TooltipContent>
         </Tooltip>
 
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={filters.date_preset !== "all" ? "secondary" : "ghost"}
-              size="icon"
-              onClick={toggle_sidebar}
-            >
-              <Calendar className="size-4" />
-            </Button>
+          <TooltipTrigger
+            className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 size-9 ${
+              filters.date_preset !== "all"
+                ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                : "hover:bg-accent hover:text-accent-foreground"
+            }`}
+            onClick={toggle_sidebar}
+          >
+            <Calendar className="size-4" />
           </TooltipTrigger>
           <TooltipContent side="right">Date filter</TooltipContent>
         </Tooltip>
 
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={filters.tags.length > 0 ? "secondary" : "ghost"}
-              size="icon"
-              onClick={toggle_sidebar}
-            >
-              <Tag className="size-4" />
-            </Button>
+          <TooltipTrigger
+            className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 size-9 ${
+              filters.tags.length > 0
+                ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                : "hover:bg-accent hover:text-accent-foreground"
+            }`}
+            onClick={toggle_sidebar}
+          >
+            <Tag className="size-4" />
           </TooltipTrigger>
           <TooltipContent side="right">Tags</TooltipContent>
         </Tooltip>
 
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={filters.favorites_only ? "default" : "ghost"}
-              size="icon"
-              onClick={() => set_favorites_only(!filters.favorites_only)}
-            >
-              <Star className={`size-4 ${filters.favorites_only ? "fill-current" : ""}`} />
-            </Button>
+          <TooltipTrigger
+            className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 size-9 ${
+              filters.favorites_only
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "hover:bg-accent hover:text-accent-foreground"
+            }`}
+            onClick={() => set_favorites_only(!filters.favorites_only)}
+          >
+            <Star className={`size-4 ${filters.favorites_only ? "fill-current" : ""}`} />
           </TooltipTrigger>
           <TooltipContent side="right">
             {filters.favorites_only ? "Showing favorites" : "Show favorites only"}
@@ -175,14 +174,15 @@ export const HistoryFilterSidebar = ({
         </Tooltip>
 
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={filters.sort !== "newest" ? "secondary" : "ghost"}
-              size="icon"
-              onClick={toggle_sidebar}
-            >
-              <SortDesc className="size-4" />
-            </Button>
+          <TooltipTrigger
+            className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 size-9 ${
+              filters.sort !== "newest"
+                ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                : "hover:bg-accent hover:text-accent-foreground"
+            }`}
+            onClick={toggle_sidebar}
+          >
+            <SortDesc className="size-4" />
           </TooltipTrigger>
           <TooltipContent side="right">Sort</TooltipContent>
         </Tooltip>

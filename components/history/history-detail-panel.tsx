@@ -16,7 +16,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { DetailPanelState } from "@/lib/stores/history-store";
 import type { GenerationWithFavorite } from "@/lib/types/database";
@@ -107,6 +106,7 @@ const BatchState = ({
   on_delete: (id: string) => void;
 }) => {
   const [is_deleting, set_is_deleting] = useState(false);
+  const [show_delete_dialog, set_show_delete_dialog] = useState(false);
 
   const handle_favorite_all = async () => {
     for (const item of items) {
@@ -118,6 +118,7 @@ const BatchState = ({
 
   const handle_delete_all = async () => {
     set_is_deleting(true);
+    set_show_delete_dialog(false);
     for (const item of items) {
       await on_delete(item.id);
     }
@@ -170,18 +171,18 @@ const BatchState = ({
           Download all
         </Button>
 
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full justify-start text-destructive hover:text-destructive"
-              disabled={is_deleting}
-            >
-              <Trash2 className="size-4 mr-2" />
-              {is_deleting ? "Deleting..." : "Delete all"}
-            </Button>
-          </AlertDialogTrigger>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full justify-start text-destructive hover:text-destructive"
+          disabled={is_deleting}
+          onClick={() => set_show_delete_dialog(true)}
+        >
+          <Trash2 className="size-4 mr-2" />
+          {is_deleting ? "Deleting..." : "Delete all"}
+        </Button>
+
+        <AlertDialog open={show_delete_dialog} onOpenChange={set_show_delete_dialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Delete {items.length} images?</AlertDialogTitle>
@@ -237,7 +238,6 @@ const SingleState = ({
   on_toggle_favorite,
   on_delete,
   on_use_prompt,
-  on_close,
 }: {
   item: GenerationWithFavorite;
   on_toggle_favorite: (id: string) => void;
@@ -248,6 +248,7 @@ const SingleState = ({
   const [prompt_text, set_prompt_text] = useState(
     JSON.stringify(item.prompt_json, null, 2)
   );
+  const [show_delete_dialog, set_show_delete_dialog] = useState(false);
 
   const handle_use_prompt = () => {
     try {
@@ -257,6 +258,11 @@ const SingleState = ({
       // Use original if parsing fails
       on_use_prompt(item.prompt_json);
     }
+  };
+
+  const handle_delete = () => {
+    set_show_delete_dialog(false);
+    on_delete(item.id);
   };
 
   return (
@@ -344,25 +350,29 @@ const SingleState = ({
 
           <div className="flex gap-2">
             {item.image_path && (
-              <Button variant="outline" size="sm" className="flex-1" asChild>
-                <a href={item.image_path} download={`generation-${item.id}.png`}>
+              <a
+                href={item.image_path}
+                download={`generation-${item.id}.png`}
+                className="flex-1"
+              >
+                <Button variant="outline" size="sm" className="w-full">
                   <Download className="size-4 mr-2" />
                   Download
-                </a>
-              </Button>
+                </Button>
+              </a>
             )}
 
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="size-4 mr-2" />
-                  Delete
-                </Button>
-              </AlertDialogTrigger>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 text-destructive hover:text-destructive"
+              onClick={() => set_show_delete_dialog(true)}
+            >
+              <Trash2 className="size-4 mr-2" />
+              Delete
+            </Button>
+
+            <AlertDialog open={show_delete_dialog} onOpenChange={set_show_delete_dialog}>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete this image?</AlertDialogTitle>
@@ -374,7 +384,7 @@ const SingleState = ({
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
-                    onClick={() => on_delete(item.id)}
+                    onClick={handle_delete}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
                     Delete

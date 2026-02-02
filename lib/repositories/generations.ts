@@ -89,6 +89,10 @@ export type ListGenerationsOptions = {
   limit?: number;
   favorites_only?: boolean;
   search?: string;
+  tags?: string[];
+  date_from?: string;
+  date_to?: string;
+  sort?: "newest" | "oldest";
 };
 
 export const list_generations = (options: ListGenerationsOptions = {}): PaginatedResult<Generation> => {
@@ -161,13 +165,37 @@ export const list_generations_with_favorites = (
     params.push(`%${options.search}%`);
   }
 
+  if (options.tags && options.tags.length > 0) {
+    // Filter by tags - generation must have ALL specified tags
+    const tag_placeholders = options.tags.map(() => "?").join(", ");
+    where_clause += ` AND g.id IN (
+      SELECT generation_id FROM generation_tags
+      WHERE tag IN (${tag_placeholders})
+      GROUP BY generation_id
+      HAVING COUNT(DISTINCT tag) = ?
+    )`;
+    params.push(...options.tags, options.tags.length);
+  }
+
+  if (options.date_from) {
+    where_clause += " AND date(g.created_at) >= date(?)";
+    params.push(options.date_from);
+  }
+
+  if (options.date_to) {
+    where_clause += " AND date(g.created_at) <= date(?)";
+    params.push(options.date_to);
+  }
+
+  const sort_order = options.sort === "oldest" ? "ASC" : "DESC";
+
   const query = `
     SELECT g.*,
            CASE WHEN f.generation_id IS NOT NULL THEN 1 ELSE 0 END as is_favorite
     FROM generations g
     LEFT JOIN favorites f ON g.id = f.generation_id
     WHERE ${where_clause}
-    ORDER BY g.created_at DESC
+    ORDER BY g.created_at ${sort_order}
   `;
 
   const count_query = `

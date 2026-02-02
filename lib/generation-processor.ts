@@ -1,5 +1,6 @@
 import { get_next_in_queue, update_queue_status } from "./queue";
 import { update_generation } from "./repositories/generations";
+import { create_tags_for_generation } from "./repositories/tags";
 import { generate_image } from "./gemini";
 import { save_image } from "./image-storage";
 
@@ -36,6 +37,13 @@ export const process_queue = async (): Promise<void> => {
               api_response_text: result.text_response,
               completed_at: true,
             });
+
+            // Extract and store tags for the generation
+            try {
+              create_tags_for_generation(item.generation_id, item.prompt_json);
+            } catch {
+              // Tag creation is non-critical, continue on error
+            }
           }
 
           update_queue_status(item.id, "completed", { completed_at: true });
