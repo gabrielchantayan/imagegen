@@ -8,9 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogContent,
-  AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import { create_component_api } from "@/lib/hooks/use-components";
 import { Loader2 } from "lucide-react";
@@ -141,109 +139,151 @@ export const SavePresetsModal = ({
 
   return (
     <AlertDialog open={open} onOpenChange={on_open_change}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Save as Presets</AlertDialogTitle>
-        </AlertDialogHeader>
-
-        <div className="space-y-4">
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
-          <div className="space-y-2">
-            <Label htmlFor="baseName">Base Name</Label>
-            <Input
-              id="baseName"
-              value={base_name}
-              onChange={(e) => set_base_name(e.target.value)}
-              placeholder="e.g., Beach Photo Reference"
-            />
+      <AlertDialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-0 shadow-2xl">
+        <div className="flex flex-col">
+          {/* Header */}
+          <div className="px-6 py-4 border-b bg-background">
+            <AlertDialogTitle className="text-lg font-semibold tracking-tight">Save as Presets</AlertDialogTitle>
+             <p className="text-sm text-muted-foreground mt-1">
+               Create multiple components from your analysis result
+             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label>Create Presets</Label>
-            <div className="space-y-2">
-              {has_subject && (
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="subject"
-                    checked={save_subject}
-                    onCheckedChange={(c) => set_save_subject(!!c)}
-                  />
-                  <Label htmlFor="subject" className="font-normal cursor-pointer">
-                    Character (subject details)
-                  </Label>
-                </div>
-              )}
-              {has_wardrobe && (
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="wardrobe"
-                    checked={save_wardrobe}
-                    onCheckedChange={(c) => set_save_wardrobe(!!c)}
-                  />
-                  <Label htmlFor="wardrobe" className="font-normal cursor-pointer">
-                    Wardrobe (clothing)
-                  </Label>
-                </div>
-              )}
-              {has_pose && (
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="pose"
-                    checked={save_pose}
-                    onCheckedChange={(c) => set_save_pose(!!c)}
-                  />
-                  <Label htmlFor="pose" className="font-normal cursor-pointer">
-                    Pose (body position)
-                  </Label>
-                </div>
-              )}
-              {has_scene && (
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="scene"
-                    checked={save_scene}
-                    onCheckedChange={(c) => set_save_scene(!!c)}
-                  />
-                  <Label htmlFor="scene" className="font-normal cursor-pointer">
-                    Scene (background/environment)
-                  </Label>
-                </div>
-              )}
-              {has_camera && (
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="camera"
-                    checked={save_camera}
-                    onCheckedChange={(c) => set_save_camera(!!c)}
-                  />
-                  <Label htmlFor="camera" className="font-normal cursor-pointer">
-                    Camera (angle/framing)
-                  </Label>
-                </div>
-              )}
+          <div className="p-6 space-y-6">
+            {error && (
+              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm font-medium flex items-center justify-center">
+                 {error}
+               </div>
+            )}
+
+            <div className="space-y-3">
+              <Label htmlFor="baseName" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Base Name</Label>
+              <Input
+                id="baseName"
+                value={base_name}
+                onChange={(e) => set_base_name(e.target.value)}
+                placeholder="e.g., Beach Photo Reference"
+                className="bg-background"
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Select Components to Create</Label>
+              <div className="grid gap-3 pt-1">
+                {has_subject && (
+                  <div className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/10 transition-colors">
+                    <Checkbox
+                      id="subject"
+                      checked={save_subject}
+                      onCheckedChange={(c) => set_save_subject(!!c)}
+                      className="mt-0.5"
+                    />
+                    <div className="space-y-1">
+                      <Label htmlFor="subject" className="font-medium cursor-pointer leading-none">
+                        Character
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Subject details and physical traits
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {has_wardrobe && (
+                  <div className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/10 transition-colors">
+                    <Checkbox
+                      id="wardrobe"
+                      checked={save_wardrobe}
+                      onCheckedChange={(c) => set_save_wardrobe(!!c)}
+                       className="mt-0.5"
+                    />
+                     <div className="space-y-1">
+                      <Label htmlFor="wardrobe" className="font-medium cursor-pointer leading-none">
+                        Wardrobe
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Clothing and outfit details
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {has_pose && (
+                  <div className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/10 transition-colors">
+                    <Checkbox
+                      id="pose"
+                      checked={save_pose}
+                      onCheckedChange={(c) => set_save_pose(!!c)}
+                       className="mt-0.5"
+                    />
+                     <div className="space-y-1">
+                      <Label htmlFor="pose" className="font-medium cursor-pointer leading-none">
+                        Pose
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Body position and gesture
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {has_scene && (
+                  <div className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/10 transition-colors">
+                    <Checkbox
+                      id="scene"
+                      checked={save_scene}
+                      onCheckedChange={(c) => set_save_scene(!!c)}
+                       className="mt-0.5"
+                    />
+                     <div className="space-y-1">
+                      <Label htmlFor="scene" className="font-medium cursor-pointer leading-none">
+                        Scene
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Background and environment
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {has_camera && (
+                  <div className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/10 transition-colors">
+                    <Checkbox
+                      id="camera"
+                      checked={save_camera}
+                      onCheckedChange={(c) => set_save_camera(!!c)}
+                       className="mt-0.5"
+                    />
+                     <div className="space-y-1">
+                      <Label htmlFor="camera" className="font-medium cursor-pointer leading-none">
+                        Camera
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Angle, framing, and look
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        <AlertDialogFooter>
-          <Button variant="outline" onClick={() => on_open_change(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handle_save}
-            disabled={saving || !base_name.trim() || !any_selected}
-          >
-            {saving ? (
-              <>
-                <Loader2 className="size-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save Presets"
-            )}
-          </Button>
-        </AlertDialogFooter>
+          <div className="px-6 py-4 border-t bg-muted/5 flex items-center justify-end gap-3">
+            <Button variant="outline" onClick={() => on_open_change(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handle_save}
+              disabled={saving || !base_name.trim() || !any_selected}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="size-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Presets"
+              )}
+            </Button>
+          </div>
+        </div>
       </AlertDialogContent>
     </AlertDialog>
   );

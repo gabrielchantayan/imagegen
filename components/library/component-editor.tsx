@@ -11,10 +11,9 @@ import { Wrench } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogContent,
-  AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogFooter,
 } from '@/components/ui/alert-dialog';
+import { Loader2 } from 'lucide-react';
 import type { Component, Category } from '@/lib/types/database';
 
 type ComponentEditorProps = {
@@ -104,74 +103,109 @@ export const ComponentEditor = ({
 
   return (
     <AlertDialog open={open} onOpenChange={on_open_change}>
-      <AlertDialogContent className="max-w-2xl">
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-        </AlertDialogHeader>
-
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => set_name(e.target.value)}
-              placeholder="Component name"
-            />
+      <AlertDialogContent className="max-w-4xl p-0 overflow-hidden border-0 shadow-2xl">
+        <div className="flex flex-col h-[600px]">
+           {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b bg-background z-10">
+            <div>
+               <AlertDialogTitle className="text-lg font-semibold tracking-tight">
+                {title}
+               </AlertDialogTitle>
+               <p className="text-sm text-muted-foreground mt-1">
+                 {is_editing ? "Modify existing component properties" : "Define a new component for your library"}
+               </p>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Input
-              id="description"
-              value={description}
-              onChange={(e) => set_description(e.target.value)}
-              placeholder="Brief description"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="data">JSON Data</Label>
-            <Textarea
-              id="data"
-              value={json_data}
-              onChange={(e) => {
-                set_json_data(e.target.value);
-                set_json_error('');
-              }}
-              className="font-mono text-sm min-h-[200px]"
-              placeholder="{}"
-            />
-            {json_error && (
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-destructive">{json_error}</p>
-                <Button variant="outline" size="sm" onClick={handle_repair}>
-                  <Wrench className="size-3 mr-1" />
-                  Repair
-                </Button>
+          <div className="flex-1 flex overflow-hidden">
+             {/* Left: Metadata */}
+            <div className="w-5/12 border-r bg-muted/10 p-6 space-y-6 overflow-y-auto">
+              <div className="space-y-3">
+                <Label htmlFor="name" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Name</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => set_name(e.target.value)}
+                  placeholder="e.g., Red Silk Dress"
+                  className="bg-background"
+                  autoFocus
+                />
               </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="description" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Description</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => set_description(e.target.value)}
+                  placeholder="A brief description of this component..."
+                  className="bg-background min-h-[120px] resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Right: JSON Data */}
+            <div className="w-7/12 flex flex-col p-0">
+               <div className="px-6 py-3 border-b bg-muted/5 flex items-center justify-between">
+                  <Label htmlFor="data" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">JSON Configuration</Label>
+                   {json_error && (
+                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
+                      <p className="text-xs font-medium text-destructive">{json_error}</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handle_repair}
+                        className="h-6 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Wrench className="size-3 mr-1" />
+                        Auto-fix
+                      </Button>
+                    </div>
+                  )}
+               </div>
+              <div className="flex-1 relative">
+                <Textarea
+                  id="data"
+                  value={json_data}
+                  onChange={(e) => {
+                    set_json_data(e.target.value);
+                    set_json_error('');
+                  }}
+                  className="absolute inset-0 w-full h-full font-mono text-sm resize-none border-0 rounded-none focus-visible:ring-0 p-6 leading-relaxed"
+                  placeholder="{}"
+                  spellCheck={false}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t bg-muted/5 flex items-center justify-end gap-3">
+             {is_editing && on_delete && (
+              <Button
+                variant="ghost"
+                onClick={handle_delete}
+                disabled={saving}
+                className="mr-auto text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                Delete Component
+              </Button>
             )}
+            <Button variant="outline" onClick={() => on_open_change(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handle_save} disabled={saving || !name}>
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 animate-spin size-4" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
           </div>
         </div>
-
-        <AlertDialogFooter>
-          {is_editing && on_delete && (
-            <Button
-              variant="destructive"
-              onClick={handle_delete}
-              disabled={saving}
-              className="mr-auto"
-            >
-              Delete
-            </Button>
-          )}
-          <Button variant="outline" onClick={() => on_open_change(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handle_save} disabled={saving || !name}>
-            {saving ? 'Saving...' : 'Save'}
-          </Button>
-        </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );

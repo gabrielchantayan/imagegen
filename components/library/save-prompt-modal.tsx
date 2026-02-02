@@ -8,9 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
   AlertDialogContent,
-  AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import { save_prompt } from "@/lib/hooks/use-prompts";
 
@@ -57,53 +55,65 @@ export const SavePromptModal = ({
 
   return (
     <AlertDialog open={open} onOpenChange={on_open_change}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Save Prompt</AlertDialogTitle>
-        </AlertDialogHeader>
-
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => set_name(e.target.value)}
-              placeholder="My awesome prompt"
-              autoFocus
-            />
+      <AlertDialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-0 shadow-2xl">
+        <div className="flex flex-col">
+           {/* Header */}
+          <div className="px-6 py-4 border-b bg-background">
+             <AlertDialogTitle className="text-lg font-semibold tracking-tight">Save Prompt</AlertDialogTitle>
+             <p className="text-sm text-muted-foreground mt-1">
+               Save this composition to your library
+             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description (optional)</Label>
-            <Input
-              id="description"
-              value={description}
-              onChange={(e) => set_description(e.target.value)}
-              placeholder="Brief description"
-            />
+          <div className="p-6 space-y-5">
+            <div className="space-y-3">
+              <Label htmlFor="name" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => set_name(e.target.value)}
+                placeholder="e.g., Cyberpunk Street Scene"
+                className="bg-background"
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="description" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Description (Optional)</Label>
+              <Input
+                id="description"
+                value={description}
+                onChange={(e) => set_description(e.target.value)}
+                placeholder="Add a brief description..."
+                className="bg-background"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Preview</Label>
+              <div className="rounded-md border bg-muted/20 p-3 max-h-[120px] overflow-y-auto">
+                <pre className="text-[10px] leading-relaxed font-mono text-muted-foreground whitespace-pre-wrap break-all">
+                  {JSON.stringify(prompt_json, null, 2)}
+                </pre>
+              </div>
+            </div>
+
+            {error && (
+               <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm font-medium flex items-center justify-center">
+                 {error}
+               </div>
+            )}
           </div>
 
-          <div className="space-y-2">
-            <Label>Preview</Label>
-            <Textarea
-              value={JSON.stringify(prompt_json, null, 2)}
-              readOnly
-              className="font-mono text-xs h-32"
-            />
+          <div className="px-6 py-4 border-t bg-muted/5 flex items-center justify-end gap-3">
+            <Button variant="outline" onClick={() => on_open_change(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handle_save} disabled={saving || !name.trim()}>
+              {saving ? "Saving..." : "Save Prompt"}
+            </Button>
           </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
-
-        <AlertDialogFooter>
-          <Button variant="outline" onClick={() => on_open_change(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handle_save} disabled={saving || !name.trim()}>
-            {saving ? "Saving..." : "Save"}
-          </Button>
-        </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
