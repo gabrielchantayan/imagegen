@@ -69,4 +69,6 @@ export type Favorite = {
 
 export type GenerationWithFavorite = Generation & {
   is_favorite: boolean;
+  tags?: { id: number; tag: string; category: string | null }[];
 };
+

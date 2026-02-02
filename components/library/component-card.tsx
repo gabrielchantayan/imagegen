@@ -2,7 +2,7 @@
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Pencil } from 'lucide-react';
+import { Check, Pencil, Copy } from 'lucide-react';
 import type { Component } from '@/lib/types/database';
 import { cn } from '@/lib/utils';
 
@@ -56,8 +56,21 @@ export const ComponentCard = ({
       )}
 
       {/* Edit Action - Visible on hover */}
-      {on_edit && (
-        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
+        <Button
+          variant="secondary"
+          size="icon"
+          className="h-7 w-7 shadow-sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(JSON.stringify(component.data, null, 2));
+          }}
+          title="Copy JSON"
+        >
+          <Copy className="size-3.5" />
+          <span className="sr-only">Copy JSON</span>
+        </Button>
+        {on_edit && (
            <Button
             variant="secondary"
             size="icon"
@@ -70,8 +83,8 @@ export const ComponentCard = ({
             <Pencil className="size-3.5" />
             <span className="sr-only">Edit</span>
           </Button>
-        </div>
-      )}
+        )}
+      </div>
     </Card>
   );
 };

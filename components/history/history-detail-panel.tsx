@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Star, Trash2, Download, Copy, ImageIcon, Heart, Archive } from "lucide-react";
+import { Star, Trash2, Download, Copy, ImageIcon, Heart, Archive, Plus, X, Tag, Clipboard } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -27,6 +29,7 @@ type HistoryDetailPanelProps = {
   on_use_prompt: (prompt: Record<string, unknown>) => void;
   on_close: () => void;
   total_count: number;
+  on_update?: () => void;
 };
 
 export const HistoryDetailPanel = ({
@@ -36,6 +39,7 @@ export const HistoryDetailPanel = ({
   on_use_prompt,
   on_close,
   total_count,
+  on_update,
 }: HistoryDetailPanelProps) => {
   if (state.mode === "empty") {
     return <EmptyState total_count={total_count} />;
@@ -58,6 +62,7 @@ export const HistoryDetailPanel = ({
       on_delete={on_delete}
       on_use_prompt={on_use_prompt}
       on_close={on_close}
+      on_update={on_update}
     />
   );
 };
@@ -238,17 +243,21 @@ const SingleState = ({
   on_toggle_favorite,
   on_delete,
   on_use_prompt,
+  on_update,
 }: {
   item: GenerationWithFavorite;
   on_toggle_favorite: (id: string) => void;
   on_delete: (id: string) => void;
   on_use_prompt: (prompt: Record<string, unknown>) => void;
   on_close: () => void;
+  on_update?: () => void;
 }) => {
   const [prompt_text, set_prompt_text] = useState(
     JSON.stringify(item.prompt_json, null, 2)
   );
   const [show_delete_dialog, set_show_delete_dialog] = useState(false);
+  const [new_tag, set_new_tag] = useState("");
+  const [is_adding_tag, set_is_adding_tag] = useState(false);
 
   const handle_use_prompt = () => {
     try {
@@ -263,6 +272,50 @@ const SingleState = ({
   const handle_delete = () => {
     set_show_delete_dialog(false);
     on_delete(item.id);
+  };
+
+  const handle_add_tag = async () => {
+    if (!new_tag.trim()) return;
+    set_is_adding_tag(true);
+    try {
+      await fetch(`/api/history/${item.id}/tags`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tag: new_tag.trim() }),
+      });
+      set_new_tag("");
+      on_update?.();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      set_is_adding_tag(false);
+    }
+  };
+
+  const handle_remove_tag = async (tag: string) => {
+    try {
+      await fetch(`/api/history/${item.id}/tags`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tag }),
+      });
+      on_update?.();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handle_copy_image = async () => {
+    if (!item.image_path) return;
+    try {
+      const response = await fetch(item.image_path);
+      const blob = await response.blob();
+      await navigator.clipboard.write([
+        new ClipboardItem({ [blob.type]: blob }),
+      ]);
+    } catch (err) {
+      console.error("Failed to copy image:", err);
+    }
   };
 
   return (
@@ -290,7 +343,17 @@ const SingleState = ({
             variant="secondary"
             size="icon"
             className="size-8"
+            onClick={handle_copy_image}
+            title="Copy Image"
+          >
+            <Clipboard className="size-4" />
+          </Button>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="size-8"
             onClick={() => on_toggle_favorite(item.id)}
+            title={item.is_favorite ? "Unfavorite" : "Favorite"}
           >
             <Star
               className={`size-4 ${
@@ -319,6 +382,41 @@ const SingleState = ({
             <span className="text-xs text-muted-foreground">
               {item.status}
             </span>
+          </div>
+
+          {/* Tags Section */}
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {item.tags?.map((t) => (
+              <Badge key={t.id} variant="secondary" className="pl-2 pr-1 h-6">
+                {t.tag}
+                <button
+                  onClick={() => handle_remove_tag(t.tag)}
+                  className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                >
+                  <X className="size-3" />
+                </button>
+              </Badge>
+            ))}
+            <div className="flex items-center gap-1 min-w-[120px]">
+               <Input
+                 value={new_tag}
+                 onChange={(e) => set_new_tag(e.target.value)}
+                 onKeyDown={(e) => {
+                    if (e.key === "Enter") handle_add_tag();
+                 }}
+                 placeholder="Add tag..."
+                 className="h-6 text-xs px-2 w-24"
+               />
+               <Button
+                 size="icon"
+                 variant="ghost"
+                 className="h-6 w-6"
+                 onClick={handle_add_tag}
+                 disabled={is_adding_tag || !new_tag.trim()}
+               >
+                 <Plus className="size-3" />
+               </Button>
+            </div>
           </div>
         </div>
 

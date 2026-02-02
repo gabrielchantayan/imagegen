@@ -3,11 +3,16 @@
 import { useState, useEffect } from 'react';
 import { jsonrepair } from 'jsonrepair';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Wrench } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Wrench, Sparkles, Send } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -15,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Loader2 } from 'lucide-react';
 import type { Component, Category } from '@/lib/types/database';
+import { cn } from '@/lib/utils';
 
 type ComponentEditorProps = {
   open: boolean;
@@ -42,6 +48,12 @@ export const ComponentEditor = ({
   const [json_data, set_json_data] = useState('{}');
   const [json_error, set_json_error] = useState('');
   const [saving, set_saving] = useState(false);
+  
+  // Magic Edit State
+  const [magic_instructions, set_magic_instructions] = useState('');
+  const [magic_loading, set_magic_loading] = useState(false);
+  const [magic_error, set_magic_error] = useState('');
+  const [magic_open, set_magic_open] = useState(false);
 
   // Reset form when component/open changes
   useEffect(() => {
@@ -101,6 +113,56 @@ export const ComponentEditor = ({
     }
   };
 
+  const handle_magic_edit = async () => {
+    if (!magic_instructions.trim()) return;
+
+    set_magic_loading(true);
+    set_magic_error('');
+
+    try {
+      let current_json;
+      try {
+        current_json = JSON.parse(json_data);
+      } catch {
+        // Try to repair before sending if invalid
+        try {
+          current_json = JSON.parse(jsonrepair(json_data));
+        } catch {
+          set_magic_error('Invalid current JSON');
+          set_magic_loading(false);
+          return;
+        }
+      }
+
+      const res = await fetch('/api/components/magic-edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          current_json,
+          instructions: magic_instructions,
+          category_name: category?.name || component?.category_id || 'Component',
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Magic edit failed');
+      }
+
+      if (data.json) {
+        set_json_data(JSON.stringify(data.json, null, 2));
+        set_json_error('');
+        set_magic_open(false);
+        set_magic_instructions('');
+      }
+    } catch (error) {
+      set_magic_error(error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      set_magic_loading(false);
+    }
+  };
+
   return (
     <AlertDialog open={open} onOpenChange={on_open_change}>
       <AlertDialogContent className="max-w-4xl p-0 overflow-hidden border-0 shadow-2xl">
@@ -147,7 +209,60 @@ export const ComponentEditor = ({
             {/* Right: JSON Data */}
             <div className="w-7/12 flex flex-col p-0">
                <div className="px-6 py-3 border-b bg-muted/5 flex items-center justify-between">
-                  <Label htmlFor="data" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">JSON Configuration</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="data" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">JSON Configuration</Label>
+                    
+                    <Popover open={magic_open} onOpenChange={set_magic_open}>
+                      <PopoverTrigger className={cn(
+                        buttonVariants({ variant: "ghost", size: "sm" }),
+                        "h-6 px-2 text-xs text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50"
+                      )}>
+                        <Sparkles className="size-3 mr-1" />
+                        Magic Edit
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0" align="start">
+                        <div className="p-3 bg-muted/20 border-b">
+                          <h4 className="font-medium text-sm flex items-center gap-2">
+                            <Sparkles className="size-4 text-indigo-500" />
+                            AI Magic Edit
+                          </h4>
+                        </div>
+                        <div className="p-3 space-y-3">
+                          <Textarea
+                            placeholder="Describe changes (e.g., 'Make the hair longer and red', 'Add gold trim to the dress')..."
+                            value={magic_instructions}
+                            onChange={(e) => set_magic_instructions(e.target.value)}
+                            className="min-h-[80px] resize-none text-sm"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handle_magic_edit();
+                              }
+                            }}
+                          />
+                          {magic_error && (
+                            <p className="text-xs text-destructive">{magic_error}</p>
+                          )}
+                          <div className="flex justify-end">
+                            <Button 
+                              size="sm" 
+                              onClick={handle_magic_edit} 
+                              disabled={magic_loading || !magic_instructions.trim()}
+                              className="bg-indigo-600 hover:bg-indigo-700 text-white h-8"
+                            >
+                              {magic_loading ? (
+                                <Loader2 className="size-3 animate-spin mr-1" />
+                              ) : (
+                                <Send className="size-3 mr-1" />
+                              )}
+                              Apply
+                            </Button>
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
                    {json_error && (
                     <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
                       <p className="text-xs font-medium text-destructive">{json_error}</p>

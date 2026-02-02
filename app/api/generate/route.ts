@@ -12,20 +12,34 @@ export const POST = async (request: Request) => {
       return NextResponse.json({ error: "prompt_json is required" }, { status: 400 });
     }
 
-    const generation = create_generation(body.prompt_json);
+    const count = Math.min(Math.max(1, Number(body.options?.count || 1)), 4);
+    const results = [];
 
-    const queue_item = enqueue(body.prompt_json, generation.id);
+    // Enqueue multiple generations
+    for (let i = 0; i < count; i++) {
+      const generation = create_generation(body.prompt_json);
+      const queue_item = enqueue(body.prompt_json, generation.id);
+      results.push({
+        queue_id: queue_item.id,
+        generation_id: generation.id,
+        status: queue_item.status,
+      });
+    }
 
-    const { position } = get_queue_status(queue_item.id);
-
+    // Trigger processing
     process_queue().catch(console.error);
+    
+    // Return the first item's details for immediate feedback, but include all IDs
+    const first = results[0];
+    const { position } = get_queue_status(first.queue_id);
 
     return NextResponse.json(
       {
-        queue_id: queue_item.id,
-        generation_id: generation.id,
+        queue_id: first.queue_id,
+        generation_id: first.generation_id,
         position: position || 1,
-        status: queue_item.status,
+        status: first.status,
+        batch: results, // Return all items for client handling
       },
       { status: 202 }
     );

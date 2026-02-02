@@ -296,7 +296,7 @@ export const HistoryLayout = () => {
 
           <ResizableHandle withHandle />
 
-          {/* Detail panel */}
+            {/* Detail panel */}
           <ResizablePanel defaultSize={35} minSize={20}>
             <HistoryDetailPanel
               state={detail_panel}
@@ -305,6 +305,7 @@ export const HistoryLayout = () => {
               on_use_prompt={handle_use_prompt}
               on_close={() => set_detail_item(null)}
               total_count={total}
+              on_update={mutate}
             />
           </ResizablePanel>
         </ResizablePanelGroup>

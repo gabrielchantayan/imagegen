@@ -210,11 +210,42 @@ export const list_generations_with_favorites = (
     limit: options.limit ?? 24,
   });
 
+  // Fetch tags for these generations
+  const generation_ids = result.items.map((i) => i.id);
+  const tags_map = new Map<string, { id: number; tag: string; category: string | null }[]>();
+
+  if (generation_ids.length > 0) {
+    const db = get_db();
+    const placeholders = generation_ids.map(() => "?").join(", ");
+    const tags = db
+      .prepare(
+        `SELECT * FROM generation_tags WHERE generation_id IN (${placeholders})`
+      )
+      .all(...generation_ids) as {
+      id: number;
+      generation_id: string;
+      tag: string;
+      category: string | null;
+    }[];
+
+    for (const tag of tags) {
+      if (!tags_map.has(tag.generation_id)) {
+        tags_map.set(tag.generation_id, []);
+      }
+      tags_map.get(tag.generation_id)!.push({
+        id: tag.id,
+        tag: tag.tag,
+        category: tag.category,
+      });
+    }
+  }
+
   return {
     ...result,
     items: result.items.map((row) => ({
       ...parse_generation(row),
       is_favorite: row.is_favorite === 1,
+      tags: tags_map.get(row.id) || [],
     })),
   };
 };

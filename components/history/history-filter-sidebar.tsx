@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
+import useSWR from "swr";
+
 import {
   Search,
   Calendar,
@@ -61,43 +63,14 @@ export const HistoryFilterSidebar = ({
   const set_sort = use_history_store((s) => s.set_sort);
   const reset_filters = use_history_store((s) => s.reset_filters);
 
-  // Extract unique tags from items for the tag filter
-  // In a real app, this would come from the API
+  // Fetch available tags from API
+  const { data: tagsData } = useSWR<{ tags: { tag: string; count: number }[] }>("/api/tags", (url: string) =>
+    fetch(url).then((res) => res.json())
+  );
+
   const available_tags = useMemo(() => {
-    const tag_counts = new Map<string, number>();
-
-    // For now, extract from prompt_json - later this will come from API
-    for (const item of items) {
-      const prompt = item.prompt_json;
-
-      // Extract subject tags
-      const subject = prompt.subject as Record<string, unknown> | undefined;
-      if (subject?.species) {
-        const tag = `species:${String(subject.species).toLowerCase()}`;
-        tag_counts.set(tag, (tag_counts.get(tag) || 0) + 1);
-      }
-      if (subject?.ethnicity) {
-        const tag = `ethnicity:${String(subject.ethnicity).toLowerCase()}`;
-        tag_counts.set(tag, (tag_counts.get(tag) || 0) + 1);
-      }
-
-      // Extract wardrobe tags
-      const wardrobe = prompt.wardrobe as Record<string, unknown> | undefined;
-      if (wardrobe?.top) {
-        const tag = `top:${String(wardrobe.top).toLowerCase().slice(0, 20)}`;
-        tag_counts.set(tag, (tag_counts.get(tag) || 0) + 1);
-      }
-      if (wardrobe?.bottom) {
-        const tag = `bottom:${String(wardrobe.bottom).toLowerCase().slice(0, 20)}`;
-        tag_counts.set(tag, (tag_counts.get(tag) || 0) + 1);
-      }
-    }
-
-    return Array.from(tag_counts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 20)
-      .map(([tag, count]) => ({ tag, count }));
-  }, [items]);
+    return tagsData?.tags || [];
+  }, [tagsData]);
 
   const has_active_filters =
     filters.search ||
