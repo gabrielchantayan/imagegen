@@ -52,14 +52,85 @@ export const validate_prompt = (
   };
 };
 
+const is_plain_object = (val: unknown): val is Record<string, unknown> => {
+  return typeof val === "object" && val !== null && !Array.isArray(val);
+};
+
 /**
- * Merge two prompt objects, with the second taking precedence
+ * Deep equality check for array union merging
+ */
+const deep_equals = (a: unknown, b: unknown): boolean => {
+  if (a === b) return true;
+  if (typeof a !== typeof b) return false;
+  if (a === null || b === null) return a === b;
+
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    return a.every((val, i) => deep_equals(val, b[i]));
+  }
+
+  if (is_plain_object(a) && is_plain_object(b)) {
+    const keys_a = Object.keys(a);
+    const keys_b = Object.keys(b);
+    if (keys_a.length !== keys_b.length) return false;
+    return keys_a.every((key) => deep_equals(a[key], b[key]));
+  }
+
+  return false;
+};
+
+/**
+ * Merge arrays as union (unique values only via deep comparison)
+ */
+const merge_arrays = (base: unknown[], override: unknown[]): unknown[] => {
+  const result = [...base];
+  for (const item of override) {
+    if (!result.some((existing) => deep_equals(existing, item))) {
+      result.push(item);
+    }
+  }
+  return result;
+};
+
+/**
+ * Deep merge helper - recursively merges objects with override taking precedence
+ */
+const deep_merge = (
+  base: Record<string, unknown>,
+  override: Record<string, unknown>
+): Record<string, unknown> => {
+  const result: Record<string, unknown> = { ...base };
+
+  for (const key of Object.keys(override)) {
+    const base_val = base[key];
+    const override_val = override[key];
+
+    // If both are plain objects, merge recursively
+    if (is_plain_object(base_val) && is_plain_object(override_val)) {
+      result[key] = deep_merge(
+        base_val as Record<string, unknown>,
+        override_val as Record<string, unknown>
+      );
+    } else if (Array.isArray(base_val) && Array.isArray(override_val)) {
+      // Union merge for arrays
+      result[key] = merge_arrays(base_val, override_val);
+    } else {
+      // Override takes precedence for primitives and type mismatches
+      result[key] = override_val;
+    }
+  }
+
+  return result;
+};
+
+/**
+ * Merge two prompt objects with deep merge - override values take precedence
  */
 export const merge_prompts = (
   base: Record<string, unknown>,
   override: Record<string, unknown>
 ): Record<string, unknown> => {
-  return { ...base, ...override };
+  return deep_merge(base, override);
 };
 
 /**

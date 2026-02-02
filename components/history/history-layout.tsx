@@ -69,7 +69,8 @@ export const HistoryLayout = () => {
     } else if (is_select_mode && selected_ids.size === 0) {
       set_detail_batch([]);
     }
-  }, [is_select_mode, selected_ids, items, set_detail_batch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Zustand actions are stable
+  }, [is_select_mode, selected_ids, items]);
 
   // Handle item click
   const handle_item_click = useCallback(
