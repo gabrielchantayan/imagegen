@@ -19,14 +19,21 @@ export default function ImportExportPage() {
   const [import_mode, set_import_mode] = useState<'merge' | 'replace'>('merge');
 
   const handle_export = async () => {
-    const response = await fetch('/api/export');
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `prompt-builder-export-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const response = await fetch('/api/export');
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `prompt-builder-export-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Failed to export data. Please try again.');
+    }
   };
 
   const handle_import = async (file: File) => {
