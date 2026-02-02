@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "bun next dev",
+    "dev": "bun next dev --port 5250",
     "build": "bun next build",
-    "start": "bun next start",
+    "start": "bun next start --port 5250",
     "lint": "eslint",
     "db:migrate": "bun run lib/migrations/index.ts",
     "db:seed": "bun run lib/seed.ts"
