@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ComponentCard } from "@/components/library/component-card";
 import { ComponentEditor } from "@/components/library/component-editor";
+import { AnalyzePanel } from "./analyze-panel";
+import { SavePresetsModal } from "./save-presets-modal";
 import {
   use_components,
   create_component_api,
@@ -13,7 +15,7 @@ import {
   delete_component_api,
 } from "@/lib/hooks/use-components";
 import { use_builder_store, SHARED_CATEGORIES } from "@/lib/stores/builder-store";
-import { Loader2, Plus, ImageIcon } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 
 import type { Component } from "@/lib/types/database";
 
@@ -28,18 +30,27 @@ export const ComponentGrid = () => {
   const [search, set_search] = useState("");
   const [editor_open, set_editor_open] = useState(false);
   const [editing_component, set_editing_component] = useState<Component | null>(null);
+  const [analysis_data, set_analysis_data] = useState<Record<string, unknown> | null>(null);
+  const [save_presets_open, set_save_presets_open] = useState(false);
 
   // Handle "analyze" special category
   if (active_category === "analyze") {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-4 text-muted-foreground">
-        <ImageIcon className="size-12 mb-4" />
-        <p className="text-lg font-medium">Image Analysis</p>
-        <p className="text-sm text-center max-w-md mt-2">
-          Upload an image to analyze it and extract component data. This feature will be available
-          in a future update.
-        </p>
-      </div>
+      <>
+        <AnalyzePanel
+          on_save_as_presets={(data) => {
+            set_analysis_data(data);
+            set_save_presets_open(true);
+          }}
+        />
+        {analysis_data && (
+          <SavePresetsModal
+            open={save_presets_open}
+            on_open_change={set_save_presets_open}
+            analysis_data={analysis_data}
+          />
+        )}
+      </>
     );
   }
 
