@@ -101,16 +101,24 @@ const JsonNode = ({
   }
 
   if (typeof value === "string") {
+    if (conflict) {
+      return (
+        <span>
+          <span className="bg-amber-500/20 border border-amber-500/50 rounded px-1 py-0.5 inline-flex items-center gap-1">
+            <span className="text-foreground">&quot;{value}&quot;</span>
+            <ConflictIndicator
+              conflict={conflict}
+              resolution={resolutions[conflict.id] ?? "use_last"}
+              on_change={(r) => on_resolution_change(conflict.id, r)}
+            />
+          </span>
+          {comma}
+        </span>
+      );
+    }
     return (
       <span>
         <span className="text-foreground">&quot;{value}&quot;</span>
-        {conflict && (
-          <ConflictIndicator
-            conflict={conflict}
-            resolution={resolutions[conflict.id] ?? "use_last"}
-            on_change={(r) => on_resolution_change(conflict.id, r)}
-          />
-        )}
         {comma}
       </span>
     );
@@ -173,10 +181,13 @@ const JsonNode = ({
         {"{\n"}
         {entries.map(([key, val], i) => {
           const child_path = path ? `${path}.${key}` : key;
+          const has_conflict = conflicts.has(child_path);
           return (
             <span key={key}>
               {spaces}{"  "}
-              <span className="text-muted-foreground">&quot;{key}&quot;</span>
+              <span className={has_conflict ? "text-amber-500 font-medium" : "text-muted-foreground"}>
+                &quot;{key}&quot;
+              </span>
               {": "}
               <JsonNode
                 value={val}
