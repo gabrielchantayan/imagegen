@@ -7,7 +7,7 @@ import { use_builder_store } from "@/lib/stores/builder-store";
 import { submit_generation } from "@/lib/hooks/use-generation";
 import { SavePromptModal } from "@/components/library/save-prompt-modal";
 import Link from "next/link";
-import { Sparkles, Save, Trash2, History, Library } from "lucide-react";
+import { Sparkles, Save, Trash2, History, Library, BarChart3 } from "lucide-react";
 
 export const BuilderToolbar = () => {
   const [save_modal_open, set_save_modal_open] = useState(false);
@@ -134,6 +134,13 @@ export const BuilderToolbar = () => {
           <Button variant="ghost">
             <Library className="size-4 mr-2" />
             Library
+          </Button>
+        </Link>
+
+        <Link href="/admin">
+          <Button variant="ghost">
+            <BarChart3 className="size-4 mr-2" />
+            Dashboard
           </Button>
         </Link>
       </div>
