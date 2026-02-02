@@ -50,10 +50,11 @@ export type AnalysisResult = {
 
 export const analyze_image = async (
   image_buffer: Buffer,
-  mime_type: string
+  mime_type: string,
 ): Promise<AnalysisResult> => {
   try {
-    const model_name = process.env.GEMINI_ANALYSIS_MODEL || "gemini-2.5-pro-preview-05-06";
+    const model_name =
+      process.env.GEMINI_ANALYSIS_MODEL || "gemini-3-pro-preview";
 
     const image_part = {
       inlineData: {

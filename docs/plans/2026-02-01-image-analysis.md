@@ -117,7 +117,7 @@ export const analyze_image = async (
 ): Promise<AnalysisResult> => {
   try {
     const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_ANALYSIS_MODEL || "gemini-2.5-pro-preview-05-06",
+      model: process.env.GEMINI_ANALYSIS_MODEL || "gemini-3-pro-preview",
     });
 
     const image_part = {
@@ -856,7 +856,7 @@ ls -la .env* 2>/dev/null || echo "No .env files"
 
 Add to the env file:
 ```
-GEMINI_ANALYSIS_MODEL=gemini-2.5-pro-preview-05-06
+GEMINI_ANALYSIS_MODEL=gemini-3-pro-preview
 ```
 
 Note: Do NOT commit .env files to git.
