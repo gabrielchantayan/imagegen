@@ -18,3 +18,22 @@ It is annoying to have to manually modify JSON prompts to generate digital avata
 ## The Solution
 
 JSON prompt builder with hot-swappable components
+
+## Documentation
+
+- [**Installation**](docs/installation.md) - Setup guide, env vars, and database init.
+- [**Features**](docs/features.md) - Overview of builder, analysis, and history tools.
+- [**Usage**](docs/usage.md) - Workflow guide from component creation to generation.
+
+## Quick Start
+
+```bash
+# Install dependencies
+bun install
+
+# Setup database
+bun db:migrate && bun db:seed
+
+# Start server
+bun dev
+```
