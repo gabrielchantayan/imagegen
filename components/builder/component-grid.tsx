@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { ComponentCard } from "@/components/library/component-card";
 import { ComponentEditor } from "@/components/library/component-editor";
 import { AnalyzePanel } from "./analyze-panel";
@@ -16,13 +17,14 @@ import {
   delete_component_api,
 } from "@/lib/hooks/use-components";
 import { use_builder_store, SHARED_CATEGORIES } from "@/lib/stores/builder-store";
-import { Loader2, Plus, ScanFace } from "lucide-react";
+import { Loader2, Plus, ScanFace, X } from "lucide-react";
 
 import type { Component } from "@/lib/types/database";
 
 export const ComponentGrid = () => {
   const active_category = use_builder_store((s) => s.active_category);
   const select_component = use_builder_store((s) => s.select_component);
+  const clear_category = use_builder_store((s) => s.clear_category);
   const subjects = use_builder_store((s) => s.subjects);
   const active_subject_id = use_builder_store((s) => s.active_subject_id);
   const shared_selections = use_builder_store((s) => s.shared_selections);
@@ -69,11 +71,16 @@ export const ComponentGrid = () => {
     );
   }
 
-  // Get current selection for this category
+  // Get current selections for this category (now an array)
   const is_shared = SHARED_CATEGORIES.includes(active_category);
-  const current_selection = is_shared
-    ? shared_selections[active_category]
-    : subjects.find((s) => s.id === active_subject_id)?.selections[active_category];
+  const current_selections: Component[] = is_shared
+    ? shared_selections[active_category] ?? []
+    : subjects.find((s) => s.id === active_subject_id)?.selections[active_category] ?? [];
+
+  // Create a map of component id -> selection order (1-based)
+  const selection_order_map = new Map(
+    current_selections.map((c, index) => [c.id, index + 1])
+  );
 
   // Filter components by search
   const filtered_components = components.filter(
@@ -85,12 +92,12 @@ export const ComponentGrid = () => {
   const category = categories.find((c) => c.id === active_category);
 
   const handle_select = (component: Component) => {
-    // Toggle selection
-    if (current_selection?.id === component.id) {
-      select_component(active_category, null);
-    } else {
-      select_component(active_category, component);
-    }
+    // Toggle selection (add or remove from array)
+    select_component(active_category, component);
+  };
+
+  const handle_clear = () => {
+    clear_category(active_category);
   };
 
   const handle_save = async (data: {
@@ -112,9 +119,10 @@ export const ComponentGrid = () => {
   const handle_delete = async () => {
     if (editing_component) {
       await delete_component_api(editing_component.id);
-      // Clear selection if deleted component was selected
-      if (current_selection?.id === editing_component.id) {
-        select_component(active_category, null);
+      // Deselect if deleted component was selected
+      if (current_selections.some((c) => c.id === editing_component.id)) {
+        const deselect_component = use_builder_store.getState().deselect_component;
+        deselect_component(active_category, editing_component.id);
       }
       mutate();
       set_editor_open(false);
@@ -140,6 +148,17 @@ export const ComponentGrid = () => {
           onChange={(e) => set_search(e.target.value)}
           className="max-w-xs"
         />
+        {current_selections.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">
+              {current_selections.length} selected
+            </Badge>
+            <Button variant="ghost" size="sm" onClick={handle_clear}>
+              <X className="size-4 mr-1" />
+              Clear
+            </Button>
+          </div>
+        )}
         {active_category === "physical_traits" && (
           <Button
             variant="outline"
@@ -167,7 +186,8 @@ export const ComponentGrid = () => {
             <ComponentCard
               key={component.id}
               component={component}
-              selected={current_selection?.id === component.id}
+              selected={selection_order_map.has(component.id)}
+              selection_order={selection_order_map.get(component.id)}
               on_select={() => handle_select(component)}
               on_edit={() => {
                 set_editing_component(component);

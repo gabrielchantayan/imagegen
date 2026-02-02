@@ -3,13 +3,17 @@
 import { useState, useEffect } from "react";
 
 import { Textarea } from "@/components/ui/textarea";
-import { ConflictWarning } from "./conflict-warning";
+import { ConflictResolver } from "./conflict-resolver";
 import { use_builder_store } from "@/lib/stores/builder-store";
 import { format_prompt_json, parse_prompt_json } from "@/lib/prompt-composer";
+
+import type { ResolutionStrategy } from "@/lib/stores/builder-store";
 
 export const JsonPreview = () => {
   const composed_prompt = use_builder_store((s) => s.composed_prompt);
   const conflicts = use_builder_store((s) => s.conflicts);
+  const conflict_resolutions = use_builder_store((s) => s.conflict_resolutions);
+  const set_conflict_resolution = use_builder_store((s) => s.set_conflict_resolution);
 
   const [edited_json, set_edited_json] = useState("");
   const [json_error, set_json_error] = useState("");
@@ -36,13 +40,22 @@ export const JsonPreview = () => {
     }
   };
 
+  const handle_resolution_change = (conflict_id: string, resolution: ResolutionStrategy) => {
+    set_conflict_resolution(conflict_id, resolution);
+  };
+
   return (
     <div className="h-full flex flex-col p-4">
-      {/* Conflict warnings */}
+      {/* Conflict resolvers */}
       {conflicts.length > 0 && (
         <div className="mb-4 space-y-2">
-          {conflicts.map((conflict, i) => (
-            <ConflictWarning key={i} conflict={conflict} />
+          {conflicts.map((conflict) => (
+            <ConflictResolver
+              key={conflict.id}
+              conflict={conflict}
+              resolution={conflict_resolutions[conflict.id] ?? "use_last"}
+              on_change={(resolution) => handle_resolution_change(conflict.id, resolution)}
+            />
           ))}
         </div>
       )}

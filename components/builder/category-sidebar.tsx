@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { use_components } from "@/lib/hooks/use-components";
 import { use_builder_store, SHARED_CATEGORIES } from "@/lib/stores/builder-store";
@@ -18,15 +19,18 @@ export const CategorySidebar = ({ className }: CategorySidebarProps) => {
   const subjects = use_builder_store((s) => s.subjects);
   const shared_selections = use_builder_store((s) => s.shared_selections);
 
-  // Check if category has selections
-  const has_selection = (category_id: string): boolean => {
+  // Get selection count for category
+  const get_selection_count = (category_id: string): number => {
     const is_shared = SHARED_CATEGORIES.includes(category_id);
 
     if (is_shared) {
-      return !!shared_selections[category_id];
+      return shared_selections[category_id]?.length ?? 0;
     }
 
-    return subjects.some((s) => !!s.selections[category_id]);
+    // Sum selections across all subjects for this category
+    return subjects.reduce((total, s) => {
+      return total + (s.selections[category_id]?.length ?? 0);
+    }, 0);
   };
 
   if (is_loading) {
@@ -44,19 +48,24 @@ export const CategorySidebar = ({ className }: CategorySidebarProps) => {
       </div>
 
       <nav className="flex-1 space-y-1 px-2">
-        {categories.map((category) => (
-          <Button
-            key={category.id}
-            variant={active_category === category.id ? "secondary" : "ghost"}
-            className={cn("w-full justify-start", has_selection(category.id) && "font-medium")}
-            onClick={() => set_active_category(category.id)}
-          >
-            {has_selection(category.id) && (
-              <span className="w-2 h-2 rounded-full bg-primary mr-2" />
-            )}
-            {category.name}
-          </Button>
-        ))}
+        {categories.map((category) => {
+          const count = get_selection_count(category.id);
+          return (
+            <Button
+              key={category.id}
+              variant={active_category === category.id ? "secondary" : "ghost"}
+              className={cn("w-full justify-start", count > 0 && "font-medium")}
+              onClick={() => set_active_category(category.id)}
+            >
+              {category.name}
+              {count > 0 && (
+                <Badge variant="secondary" className="ml-auto text-xs h-5 min-w-5 justify-center">
+                  {count}
+                </Badge>
+              )}
+            </Button>
+          );
+        })}
       </nav>
 
       <Separator className="my-2" />
