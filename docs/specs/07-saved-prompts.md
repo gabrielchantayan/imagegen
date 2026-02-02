@@ -716,16 +716,16 @@ const composedPrompt = useBuilderStore((s) => s.composedPrompt);
 
 ## Implementation Checklist
 
-- [ ] Create `lib/repositories/prompts.ts`
-- [ ] Create `app/api/prompts/route.ts`
-- [ ] Create `app/api/prompts/[id]/route.ts`
-- [ ] Create `lib/hooks/use-prompts.ts`
-- [ ] Create `components/library/save-prompt-modal.tsx`
-- [ ] Create `components/library/prompts-list.tsx`
-- [ ] Create `components/library/prompt-card.tsx`
-- [ ] Create `app/(protected)/library/page.tsx`
-- [ ] Integrate save modal with builder toolbar
-- [ ] Add navigation link to library page
+- [x] Create `lib/repositories/prompts.ts`
+- [x] Create `app/api/prompts/route.ts`
+- [x] Create `app/api/prompts/[id]/route.ts`
+- [x] Create `lib/hooks/use-prompts.ts`
+- [x] Create `components/library/save-prompt-modal.tsx`
+- [x] Create `components/library/prompts-list.tsx`
+- [x] Create `components/library/prompt-card.tsx`
+- [x] Create `app/(protected)/library/page.tsx`
+- [x] Integrate save modal with builder toolbar
+- [x] Add navigation link to library page
 - [ ] Test save prompt flow
 - [ ] Test load prompt into builder
 - [ ] Test search

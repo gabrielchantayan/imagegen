@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SettingsDropdown } from "./settings-dropdown";
 import { use_builder_store } from "@/lib/stores/builder-store";
 import { submit_generation } from "@/lib/hooks/use-generation";
+import { SavePromptModal } from "@/components/library/save-prompt-modal";
 import Link from "next/link";
-import { Sparkles, Save, Trash2, History } from "lucide-react";
+import { Sparkles, Save, Trash2, History, Library } from "lucide-react";
 
 export const BuilderToolbar = () => {
+  const [save_modal_open, set_save_modal_open] = useState(false);
+
   const clear_builder = use_builder_store((s) => s.clear_builder);
   const composed_prompt = use_builder_store((s) => s.composed_prompt);
   const generation_status = use_builder_store((s) => s.generation_status);
@@ -78,9 +81,8 @@ export const BuilderToolbar = () => {
     }
   }, [composed_prompt, settings, set_generation_status, set_generation_error, set_queue_position, poll_status]);
 
-  const handle_save_prompt = async () => {
-    // Will be implemented in 07-saved-prompts.md
-    console.log("Save prompt clicked - will be implemented in spec 07");
+  const handle_save_prompt = () => {
+    set_save_modal_open(true);
   };
 
   useEffect(() => {
@@ -127,6 +129,13 @@ export const BuilderToolbar = () => {
             History
           </Button>
         </Link>
+
+        <Link href="/library">
+          <Button variant="ghost">
+            <Library className="size-4 mr-2" />
+            Library
+          </Button>
+        </Link>
       </div>
 
       <div className="flex items-center gap-4">
@@ -138,6 +147,12 @@ export const BuilderToolbar = () => {
 
         <SettingsDropdown />
       </div>
+
+      <SavePromptModal
+        open={save_modal_open}
+        on_open_change={set_save_modal_open}
+        prompt_json={composed_prompt || {}}
+      />
     </div>
   );
 };
