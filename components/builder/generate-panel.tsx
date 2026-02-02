@@ -14,7 +14,10 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Sparkles, Save, Copy } from "lucide-react";
-import { use_components, create_component_api } from "@/lib/hooks/use-components";
+import {
+  use_components,
+  create_component_api,
+} from "@/lib/hooks/use-components";
 
 const CATEGORY_OPTIONS = [
   { value: "scenes", label: "Scenes" },
@@ -111,12 +114,15 @@ export const GeneratePanel = () => {
   };
 
   return (
-    <div className="h-full flex gap-4 p-4">
+    <div className="flex gap-4 p-4 h-full">
       {/* Left: Input area */}
-      <div className="w-1/2 flex flex-col gap-4">
+      <div className="flex flex-col gap-4 w-1/2">
         <div className="space-y-2">
           <Label htmlFor="category">Category</Label>
-          <Select value={category} onValueChange={(value) => set_category(value ?? "")}>
+          <Select
+            value={category}
+            onValueChange={(value) => set_category(value ?? "")}
+          >
             <SelectTrigger id="category">
               <SelectValue placeholder="Select a category..." />
             </SelectTrigger>
@@ -130,7 +136,7 @@ export const GeneratePanel = () => {
           </Select>
         </div>
 
-        <div className="flex-1 flex flex-col space-y-2">
+        <div className="flex flex-col flex-1 space-y-2">
           <Label htmlFor="description">Describe what you want</Label>
           <Textarea
             id="description"
@@ -140,7 +146,7 @@ export const GeneratePanel = () => {
             className="flex-1 resize-none"
           />
           <p className="text-xs text-muted-foreground">
-            {description.length}/2000 characters
+            {description.length}/5000 characters
           </p>
         </div>
 
@@ -151,12 +157,12 @@ export const GeneratePanel = () => {
         >
           {generating ? (
             <>
-              <Loader2 className="size-4 mr-2 animate-spin" />
+              <Loader2 className="mr-2 animate-spin size-4" />
               Generating...
             </>
           ) : (
             <>
-              <Sparkles className="size-4 mr-2" />
+              <Sparkles className="mr-2 size-4" />
               Generate
             </>
           )}
@@ -164,16 +170,16 @@ export const GeneratePanel = () => {
       </div>
 
       {/* Right: Results */}
-      <div className="w-1/2 flex flex-col">
-        <Card className="flex-1 flex flex-col">
+      <div className="flex flex-col w-1/2">
+        <Card className="flex flex-col flex-1">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Generated Prompt</CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col min-h-0">
-            {error && <p className="text-destructive mb-4">{error}</p>}
+          <CardContent className="flex flex-col flex-1 min-h-0">
+            {error && <p className="mb-4 text-destructive">{error}</p>}
 
             {save_success && (
-              <p className="text-green-600 mb-4">Preset saved successfully!</p>
+              <p className="mb-4 text-green-600">Preset saved successfully!</p>
             )}
 
             {result ? (
@@ -183,7 +189,7 @@ export const GeneratePanel = () => {
                   readOnly
                   className="flex-1 font-mono text-xs resize-none"
                 />
-                <div className="space-y-3 mt-4">
+                <div className="mt-4 space-y-3">
                   <div className="space-y-2">
                     <Label htmlFor="preset-name">Preset Name</Label>
                     <Input
@@ -200,9 +206,9 @@ export const GeneratePanel = () => {
                       className="flex-1"
                     >
                       {saving ? (
-                        <Loader2 className="size-4 mr-2 animate-spin" />
+                        <Loader2 className="mr-2 animate-spin size-4" />
                       ) : (
-                        <Save className="size-4 mr-2" />
+                        <Save className="mr-2 size-4" />
                       )}
                       Save as Preset
                     </Button>
@@ -216,10 +222,10 @@ export const GeneratePanel = () => {
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              <div className="flex flex-1 justify-center items-center text-muted-foreground">
                 {generating ? (
                   <div className="text-center">
-                    <Loader2 className="size-8 animate-spin mx-auto mb-2" />
+                    <Loader2 className="mx-auto mb-2 animate-spin size-8" />
                     <p>Generating prompt...</p>
                   </div>
                 ) : (

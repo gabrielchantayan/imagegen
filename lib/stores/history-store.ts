@@ -315,9 +315,20 @@ export const use_history_store = create<HistoryState>()((set, get) => ({
   },
 
   set_detail_batch: (items) => {
+    const current = get().detail_panel;
     if (items.length === 0) {
+      // Bail out if already empty to prevent infinite loops
+      if (current.mode === "empty") return;
       set({ detail_panel: { mode: "empty" } });
     } else {
+      // Bail out if same items (by id) to prevent unnecessary updates
+      if (
+        current.mode === "batch" &&
+        current.items.length === items.length &&
+        current.items.every((item, i) => item.id === items[i].id)
+      ) {
+        return;
+      }
       set({ detail_panel: { mode: "batch", items } });
     }
   },

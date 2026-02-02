@@ -56,6 +56,15 @@ const is_plain_object = (val: unknown): val is Record<string, unknown> => {
   return typeof val === "object" && val !== null && !Array.isArray(val);
 };
 
+export type MergeStrategy = "deep" | "replace";
+
+export type MergeOptions = {
+  /** Per-key merge strategies */
+  strategy?: Record<string, MergeStrategy>;
+  /** Default strategy when not specified per-key (defaults to 'deep') */
+  default_strategy?: MergeStrategy;
+};
+
 /**
  * Deep equality check for array union merging
  */
@@ -94,22 +103,35 @@ const merge_arrays = (base: unknown[], override: unknown[]): unknown[] => {
 
 /**
  * Deep merge helper - recursively merges objects with override taking precedence
+ * @param key_path - dot-separated path for strategy lookup (e.g., "subject.appearance")
  */
 const deep_merge = (
   base: Record<string, unknown>,
-  override: Record<string, unknown>
+  override: Record<string, unknown>,
+  options: MergeOptions = {},
+  key_path = ""
 ): Record<string, unknown> => {
   const result: Record<string, unknown> = { ...base };
+  const { strategy = {}, default_strategy = "deep" } = options;
 
   for (const key of Object.keys(override)) {
     const base_val = base[key];
     const override_val = override[key];
+    const full_path = key_path ? `${key_path}.${key}` : key;
 
-    // If both are plain objects, merge recursively
-    if (is_plain_object(base_val) && is_plain_object(override_val)) {
+    // Check for per-key strategy (check full path first, then just the key)
+    const key_strategy = strategy[full_path] ?? strategy[key] ?? default_strategy;
+
+    if (key_strategy === "replace") {
+      // Replace entirely - no merging
+      result[key] = override_val;
+    } else if (is_plain_object(base_val) && is_plain_object(override_val)) {
+      // Deep merge objects recursively
       result[key] = deep_merge(
         base_val as Record<string, unknown>,
-        override_val as Record<string, unknown>
+        override_val as Record<string, unknown>,
+        options,
+        full_path
       );
     } else if (Array.isArray(base_val) && Array.isArray(override_val)) {
       // Union merge for arrays
@@ -124,13 +146,31 @@ const deep_merge = (
 };
 
 /**
- * Merge two prompt objects with deep merge - override values take precedence
+ * Merge two prompt objects with configurable per-key strategy
+ *
+ * @example
+ * // Deep merge everything (default)
+ * merge_prompts(base, override);
+ *
+ * @example
+ * // Replace 'background' entirely, deep merge everything else
+ * merge_prompts(base, override, {
+ *   strategy: { background: 'replace' }
+ * });
+ *
+ * @example
+ * // Replace by default, deep merge only 'subject'
+ * merge_prompts(base, override, {
+ *   default_strategy: 'replace',
+ *   strategy: { subject: 'deep' }
+ * });
  */
 export const merge_prompts = (
   base: Record<string, unknown>,
-  override: Record<string, unknown>
+  override: Record<string, unknown>,
+  options: MergeOptions = {}
 ): Record<string, unknown> => {
-  return deep_merge(base, override);
+  return deep_merge(base, override, options);
 };
 
 /**

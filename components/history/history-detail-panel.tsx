@@ -266,19 +266,20 @@ const SingleState = ({
   };
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Image preview */}
-      <div className="relative aspect-[3/4] bg-muted shrink-0">
+    <div className="h-full overflow-y-auto">
+      {/* Image preview - full size */}
+      <div className="relative bg-muted">
         {item.image_path ? (
           <Image
             src={item.image_path}
             alt=""
-            fill
-            className="object-contain"
+            width={1024}
+            height={1536}
+            className="w-full h-auto"
             sizes="(max-width: 768px) 100vw, 400px"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+          <div className="w-full aspect-[3/4] flex items-center justify-center text-muted-foreground">
             <Archive className="size-12" />
           </div>
         )}
@@ -301,9 +302,9 @@ const SingleState = ({
       </div>
 
       {/* Details */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex flex-col">
         {/* Meta */}
-        <div className="p-4 border-b shrink-0">
+        <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">
               {new Date(item.created_at).toLocaleDateString(undefined, {
@@ -322,22 +323,22 @@ const SingleState = ({
         </div>
 
         {/* Prompt JSON */}
-        <div className="flex-1 p-4 overflow-hidden flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-2 shrink-0">
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">Prompt JSON</span>
             <span className="text-xs text-muted-foreground">Editable</span>
           </div>
           <Textarea
             value={prompt_text}
             onChange={(e) => set_prompt_text(e.target.value)}
-            className="flex-1 font-mono text-xs resize-none min-h-0"
+            className="font-mono text-xs resize-none min-h-[200px]"
           />
         </div>
 
         <Separator />
 
         {/* Actions */}
-        <div className="p-4 space-y-2 shrink-0">
+        <div className="p-4 space-y-2">
           <Button
             variant="default"
             size="sm"

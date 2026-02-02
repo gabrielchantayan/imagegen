@@ -200,20 +200,64 @@ const apply_resolution = (
 
 type FieldValues = Map<string, { value: unknown; source: string }[]>;
 
-const collect_field_values = (
+const is_plain_object = (val: unknown): val is Record<string, unknown> => {
+  return typeof val === "object" && val !== null && !Array.isArray(val);
+};
+
+/**
+ * Recursively collect field values at all nesting levels
+ * Uses dot-notation paths (e.g., "subject.hair", "subject.appearance.color")
+ */
+const collect_field_values_deep = (
   fields: FieldValues,
   data: Record<string, unknown>,
   source: string,
+  path_prefix = "",
 ): void => {
   for (const [key, value] of Object.entries(data)) {
-    if (!fields.has(key)) {
-      fields.set(key, []);
+    const path = path_prefix ? `${path_prefix}.${key}` : key;
+
+    if (is_plain_object(value)) {
+      // Recurse into nested objects
+      collect_field_values_deep(fields, value, source, path);
+    } else {
+      // Leaf value - collect it
+      if (!fields.has(path)) {
+        fields.set(path, []);
+      }
+      fields.get(path)!.push({ value, source });
     }
-    fields.get(key)!.push({ value, source });
   }
 };
 
-const resolve_fields = (
+/**
+ * Set a value at a nested path in an object
+ * e.g., set_nested(obj, "subject.hair", "long") sets obj.subject.hair = "long"
+ */
+const set_nested = (
+  obj: Record<string, unknown>,
+  path: string,
+  value: unknown,
+): void => {
+  const parts = path.split(".");
+  let current = obj;
+
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    if (!is_plain_object(current[part])) {
+      current[part] = {};
+    }
+    current = current[part] as Record<string, unknown>;
+  }
+
+  current[parts[parts.length - 1]] = value;
+};
+
+/**
+ * Resolve fields with deep conflict detection
+ * Detects conflicts at leaf level and builds nested result structure
+ */
+const resolve_fields_deep = (
   fields: FieldValues,
   resolutions: Record<string, ResolutionStrategy>,
   section_prefix: string,
@@ -221,8 +265,8 @@ const resolve_fields = (
 ): Record<string, unknown> => {
   const result: Record<string, unknown> = {};
 
-  for (const [key, values] of fields) {
-    const conflict_id = `${section_prefix}.${key}`;
+  for (const [path, values] of fields) {
+    const conflict_id = `${section_prefix}.${path}`;
     const resolution = resolutions[conflict_id] ?? "use_last";
 
     // Detect conflicts (more than one unique value)
@@ -237,20 +281,39 @@ const resolve_fields = (
       const resolved_value = apply_resolution(values, resolution);
       conflicts.push({
         id: conflict_id,
-        field: key,
+        field: path.split(".").pop() ?? path,
         values: values.map((v) => ({
           value: String(v.value),
           source: v.source,
         })),
         resolved_value: String(resolved_value),
       });
-      result[key] = resolved_value;
+      set_nested(result, path, resolved_value);
     } else {
-      result[key] = values[values.length - 1].value;
+      set_nested(result, path, values[values.length - 1].value);
     }
   }
 
   return result;
+
+};
+
+// Keep shallow version for backwards compatibility
+const collect_field_values = (
+  fields: FieldValues,
+  data: Record<string, unknown>,
+  source: string,
+): void => {
+  collect_field_values_deep(fields, data, source, "");
+};
+
+const resolve_fields = (
+  fields: FieldValues,
+  resolutions: Record<string, ResolutionStrategy>,
+  section_prefix: string,
+  conflicts: ConflictInfo[],
+): Record<string, unknown> => {
+  return resolve_fields_deep(fields, resolutions, section_prefix, conflicts);
 };
 
 const compose_subject_sections = (

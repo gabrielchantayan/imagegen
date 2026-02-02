@@ -10,14 +10,14 @@ export const POST = async (request: Request) => {
     if (!category || typeof category !== "string") {
       return NextResponse.json(
         { success: false, error: "Category is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!description || typeof description !== "string") {
       return NextResponse.json(
         { success: false, error: "Description is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -25,21 +25,21 @@ export const POST = async (request: Request) => {
     if (!trimmed_description) {
       return NextResponse.json(
         { success: false, error: "Description cannot be empty" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    if (trimmed_description.length > 2000) {
+    if (trimmed_description.length > 5000) {
       return NextResponse.json(
-        { success: false, error: "Description too long (max 2000 characters)" },
-        { status: 400 }
+        { success: false, error: "Description too long (max 5000 characters)" },
+        { status: 400 },
       );
     }
 
     if (!SUPPORTED_CATEGORIES.includes(category)) {
       return NextResponse.json(
         { success: false, error: `Unsupported category: ${category}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -48,7 +48,7 @@ export const POST = async (request: Request) => {
     if (!result.success) {
       return NextResponse.json(
         { success: false, error: result.error },
-        { status: 500 }
+        { status: 500 },
       );
     }
 

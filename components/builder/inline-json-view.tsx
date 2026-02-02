@@ -181,13 +181,20 @@ const JsonNode = ({
         {"{\n"}
         {entries.map(([key, val], i) => {
           const child_path = path ? `${path}.${key}` : key;
-          const has_conflict = conflicts.has(child_path);
+          const child_conflict = conflicts.get(child_path);
           return (
             <span key={key}>
               {spaces}{"  "}
-              <span className={has_conflict ? "text-amber-500 font-medium" : "text-muted-foreground"}>
+              <span className={child_conflict ? "text-amber-500 font-medium" : "text-muted-foreground"}>
                 &quot;{key}&quot;
               </span>
+              {child_conflict && (
+                <ConflictIndicator
+                  conflict={child_conflict}
+                  resolution={resolutions[child_conflict.id] ?? "use_last"}
+                  on_change={(r) => on_resolution_change(child_conflict.id, r)}
+                />
+              )}
               {": "}
               <JsonNode
                 value={val}
@@ -219,21 +226,25 @@ export const InlineJsonView = ({
   // Build a map of field paths to conflicts for quick lookup
   const conflict_map = new Map<string, ConflictInfo>();
   for (const conflict of conflicts) {
-    // Convert conflict.id (e.g., "body.hair") to the path format used in JSON
-    // The conflict.id format is "section.field", we need to map to JSON paths
+    // Convert conflict.id to JSON path format
+    // Formats: "body.path.to.field", "wardrobe.path", "pose.path", "shared.category.path"
     const parts = conflict.id.split(".");
-    if (parts.length === 2) {
-      const [section, field] = parts;
-      // Map section names to JSON structure
+
+    if (parts.length >= 2) {
+      const [section, ...rest] = parts;
+      const field_path = rest.join(".");
+
       if (section === "body") {
-        conflict_map.set(`subject.${field}`, conflict);
-      } else if (section === "wardrobe") {
-        conflict_map.set(`wardrobe.${field}`, conflict);
-      } else if (section === "pose") {
-        conflict_map.set(`pose.${field}`, conflict);
-      } else if (section.startsWith("shared.")) {
-        const shared_key = section.replace("shared.", "");
-        conflict_map.set(`${shared_key}.${field}`, conflict);
+        // body.* → subject.*
+        conflict_map.set(`subject.${field_path}`, conflict);
+      } else if (section === "wardrobe" || section === "pose") {
+        // wardrobe.*, pose.* → same path
+        conflict_map.set(`${section}.${field_path}`, conflict);
+      } else if (section === "shared" && parts.length >= 3) {
+        // shared.category.path → category.path (with plural→singular mapping)
+        const [, category, ...field_parts] = parts;
+        const mapped_key = category.replace(/s$/, "");
+        conflict_map.set(`${mapped_key}.${field_parts.join(".")}`, conflict);
       }
     }
   }
