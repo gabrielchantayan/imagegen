@@ -1,45 +1,86 @@
 "use client";
 
 import Image from "next/image";
-import { Star } from "lucide-react";
+import { Star, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { GenerationWithFavorite } from "@/lib/types/database";
 
 type HistoryCardProps = {
   item: GenerationWithFavorite;
-  on_click: () => void;
+  on_click: (e: React.MouseEvent) => void;
   on_toggle_favorite: () => void;
+  is_select_mode?: boolean;
+  is_selected?: boolean;
+  is_focused?: boolean;
 };
 
 export const HistoryCard = ({
   item,
   on_click,
   on_toggle_favorite,
+  is_select_mode = false,
+  is_selected = false,
+  is_focused = false,
 }: HistoryCardProps) => {
   return (
     <div
-      className="group relative aspect-[3/4] rounded-lg overflow-hidden cursor-pointer bg-muted"
+      className={`
+        group relative aspect-[3/4] rounded-lg overflow-hidden cursor-pointer bg-muted
+        transition-all duration-150
+        ${is_selected ? "ring-2 ring-primary ring-offset-2" : ""}
+        ${is_focused ? "ring-2 ring-ring ring-offset-1" : ""}
+        ${!is_selected && !is_focused ? "hover:ring-1 hover:ring-muted-foreground/30" : ""}
+      `}
       onClick={on_click}
     >
+      {/* Image */}
       {item.image_path && (
         <Image
           src={item.image_path}
           alt=""
           fill
-          className="object-cover transition-transform group-hover:scale-105"
+          className={`
+            object-cover transition-transform
+            ${!is_select_mode ? "group-hover:scale-105" : ""}
+          `}
           sizes="(max-width: 768px) 50vw, (max-width: 1024px) 25vw, 16vw"
         />
       )}
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      {/* Gradient overlay */}
+      <div
+        className={`
+          absolute inset-0 bg-gradient-to-t from-black/60 via-transparent
+          transition-opacity
+          ${is_select_mode || is_selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
+        `}
+      />
 
+      {/* Selection checkbox (select mode) */}
+      {is_select_mode && (
+        <div
+          className={`
+            absolute top-2 left-2 w-6 h-6 rounded-md border-2 flex items-center justify-center
+            transition-all
+            ${is_selected
+              ? "bg-primary border-primary text-primary-foreground"
+              : "bg-background/80 border-muted-foreground/50"
+            }
+          `}
+        >
+          {is_selected && <Check className="w-4 h-4" />}
+        </div>
+      )}
+
+      {/* Favorite button */}
       <Button
         variant="ghost"
         size="icon"
-        className={`absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity ${
-          item.is_favorite ? "opacity-100" : ""
-        }`}
+        className={`
+          absolute top-2 right-2 transition-opacity
+          ${item.is_favorite || is_select_mode ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
+        `}
         onClick={(e) => {
           e.stopPropagation();
           on_toggle_favorite();
@@ -52,9 +93,20 @@ export const HistoryCard = ({
         />
       </Button>
 
-      <div className="absolute bottom-2 left-2 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Date badge */}
+      <div
+        className={`
+          absolute bottom-2 left-2 text-xs text-white transition-opacity
+          ${is_select_mode ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
+        `}
+      >
         {new Date(item.created_at).toLocaleDateString()}
       </div>
+
+      {/* Selected indicator overlay */}
+      {is_selected && (
+        <div className="absolute inset-0 bg-primary/10 pointer-events-none" />
+      )}
     </div>
   );
 };
