@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 
 import { use_builder_store } from "@/lib/stores/builder-store";
+import { ReferenceSyncProvider } from "./reference-sync-provider";
 import { CategorySidebar } from "./category-sidebar";
 import { ComponentGrid } from "./component-grid";
 import { JsonPreview } from "./json-preview";
@@ -25,51 +26,53 @@ export const BuilderLayout = () => {
   }, [generation_status, last_generated_image]);
 
   return (
-    <div className="h-screen flex flex-col">
-      <BuilderToolbar />
+    <ReferenceSyncProvider>
+      <div className="h-screen flex flex-col">
+        <BuilderToolbar />
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <CategorySidebar className="w-48 border-r shrink-0" />
+        <div className="flex-1 flex overflow-hidden">
+          {/* Sidebar */}
+          <CategorySidebar className="w-48 border-r shrink-0" />
 
-        {/* Main content */}
-        <ResizablePanelGroup direction="horizontal" className="flex-1">
-          {/* Component selection */}
-          <ResizablePanel defaultSize={55} minSize={30}>
-            <ComponentGrid />
-          </ResizablePanel>
+          {/* Main content */}
+          <ResizablePanelGroup direction="horizontal" className="flex-1">
+            {/* Component selection */}
+            <ResizablePanel defaultSize={55} minSize={30}>
+              <ComponentGrid />
+            </ResizablePanel>
 
-          <ResizableHandle withHandle />
+            <ResizableHandle withHandle />
 
-          {/* Preview area */}
-          <ResizablePanel defaultSize={45} minSize={25}>
-            <Tabs
-              value={preview_tab}
-              onValueChange={(v) => set_preview_tab(v as "json" | "image")}
-              className="h-full flex flex-col"
-            >
-              <TabsList className="mx-4 mt-2 shrink-0">
-                <TabsTrigger value="json">
-                  <Code className="size-4 mr-2" />
-                  JSON Preview
-                </TabsTrigger>
-                <TabsTrigger value="image">
-                  <ImageIcon className="size-4 mr-2" />
-                  Generated Image
-                </TabsTrigger>
-              </TabsList>
+            {/* Preview area */}
+            <ResizablePanel defaultSize={45} minSize={25}>
+              <Tabs
+                value={preview_tab}
+                onValueChange={(v) => set_preview_tab(v as "json" | "image")}
+                className="h-full flex flex-col"
+              >
+                <TabsList className="mx-4 mt-2 shrink-0">
+                  <TabsTrigger value="json">
+                    <Code className="size-4 mr-2" />
+                    JSON Preview
+                  </TabsTrigger>
+                  <TabsTrigger value="image">
+                    <ImageIcon className="size-4 mr-2" />
+                    Generated Image
+                  </TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="json" className="flex-1 min-h-0">
-                <JsonPreview />
-              </TabsContent>
+                <TabsContent value="json" className="flex-1 min-h-0">
+                  <JsonPreview />
+                </TabsContent>
 
-              <TabsContent value="image" className="flex-1 min-h-0">
-                <ImagePreview />
-              </TabsContent>
-            </Tabs>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+                <TabsContent value="image" className="flex-1 min-h-0">
+                  <ImagePreview />
+                </TabsContent>
+              </Tabs>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </div>
       </div>
-    </div>
+    </ReferenceSyncProvider>
   );
 };

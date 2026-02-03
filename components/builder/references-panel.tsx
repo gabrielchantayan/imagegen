@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { use_builder_store } from "@/lib/stores/builder-store";
 import { use_references } from "@/lib/hooks/use-references";
-import { use_reference_auto_sync } from "@/lib/hooks/use-reference-auto-sync";
+import { useReferenceSyncContext } from "./reference-sync-provider";
 import { ReferenceUploadModal } from "@/components/references/reference-upload-modal";
 import { ReferenceManagerModal } from "@/components/references/reference-manager-modal";
 import { Plus, Settings, X, Loader2, User, Check, Sparkles } from "lucide-react";
@@ -23,8 +23,8 @@ export const ReferencesPanel = () => {
   const clear_references = use_builder_store((s) => s.clear_references);
 
   // Use auto-sync hook for automatic reference management
-  const { auto_ids, manual_ids, add_manual, remove_reference, clear_manual } =
-    use_reference_auto_sync();
+  const { auto_ids, manual_ids, blocked_ids, add_manual, remove_reference, clear_manual } =
+    useReferenceSyncContext();
 
   const handle_toggle = (id: string) => {
     if (selected_reference_ids.includes(id)) {
@@ -142,6 +142,7 @@ export const ReferencesPanel = () => {
                 reference={ref}
                 is_selected={selected_reference_ids.includes(ref.id)}
                 is_auto={auto_ids.has(ref.id)}
+                is_blocked={blocked_ids.has(ref.id)}
                 on_toggle={() => handle_toggle(ref.id)}
               />
             ))}
@@ -173,6 +174,7 @@ type ReferenceCardProps = {
   reference: ReferencePhoto;
   is_selected: boolean;
   is_auto: boolean;
+  is_blocked: boolean;
   on_toggle: () => void;
 };
 
@@ -180,6 +182,7 @@ const ReferenceCard = ({
   reference,
   is_selected,
   is_auto,
+  is_blocked,
   on_toggle,
 }: ReferenceCardProps) => {
   return (
@@ -224,7 +227,9 @@ const ReferenceCard = ({
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-3 pt-8">
         <p className="text-sm font-medium text-white truncate">{reference.name}</p>
         {is_auto && !is_selected && (
-          <p className="text-xs text-white/70 mt-0.5">Linked to component</p>
+          <p className="text-xs text-white/70 mt-0.5">
+            {is_blocked ? "Blocked (linked)" : "Linked to component"}
+          </p>
         )}
       </div>
 

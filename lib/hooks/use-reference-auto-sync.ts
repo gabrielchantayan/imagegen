@@ -12,9 +12,11 @@ const REFERENCE_CATEGORIES = ["characters", "physical_traits"];
  * When a character or physical_trait component with linked references is selected,
  * those references are automatically added to the builder's selected references.
  *
- * Tracks auto-added vs manually-added references so that:
- * - Auto references are removed when their source component is deselected
- * - Manual references persist regardless of component changes
+ * Selection = (auto_ids - blocked_ids) ∪ manual_ids
+ *
+ * - Auto refs can be blocked by user (click to unselect)
+ * - When a component is deselected, its refs are removed from both blocked_ids and manual_ids
+ * - This ensures deselecting a component fully removes its linked refs
  */
 export const use_reference_auto_sync = () => {
   const { component_defaults } = use_references();
@@ -24,6 +26,12 @@ export const use_reference_auto_sync = () => {
 
   // Track manually added reference IDs
   const [manual_ids, set_manual_ids] = useState<Set<string>>(new Set());
+
+  // Track blocked auto reference IDs (user explicitly unselected these)
+  const [blocked_ids, set_blocked_ids] = useState<Set<string>>(new Set());
+
+  // Track previous auto_ids to detect when refs leave auto
+  const prev_auto_ids = useRef<Set<string>>(new Set());
 
   // Track if this is the first render to avoid overwriting persisted state
   const is_initialized = useRef(false);
@@ -47,11 +55,15 @@ export const use_reference_auto_sync = () => {
     return ids;
   }, [subjects, component_defaults]);
 
-  // Sync selected references: auto + manual
+  // Sync selected references: (auto - blocked) + manual
+  // Also handles cleanup when refs leave auto_ids (consolidated to avoid race conditions)
   useEffect(() => {
     // Skip first render to allow hydration of persisted state
     if (!is_initialized.current) {
       is_initialized.current = true;
+
+      // Initialize prev_auto_ids on first render
+      prev_auto_ids.current = auto_ids;
 
       // On first render, any existing selections not from auto are manual
       const initial_manual = new Set<string>();
@@ -66,8 +78,55 @@ export const use_reference_auto_sync = () => {
       return;
     }
 
-    // Compute new selection: all auto + all manual
-    const new_selection = new Set([...auto_ids, ...manual_ids]);
+    // Detect refs that left auto_ids since last render
+    const prev = prev_auto_ids.current;
+    const refs_that_left: string[] = [];
+    for (const id of prev) {
+      if (!auto_ids.has(id)) {
+        refs_that_left.push(id);
+      }
+    }
+    prev_auto_ids.current = auto_ids;
+
+    // Compute effective manual_ids and blocked_ids after cleanup
+    // (do this inline to avoid race conditions with separate setState calls)
+    let effective_manual = manual_ids;
+    let effective_blocked = blocked_ids;
+    let manual_changed = false;
+    let blocked_changed = false;
+
+    if (refs_that_left.length > 0) {
+      // Clean manual_ids
+      const manual_needs_update = refs_that_left.some((id) => manual_ids.has(id));
+      if (manual_needs_update) {
+        effective_manual = new Set(manual_ids);
+        for (const id of refs_that_left) {
+          effective_manual.delete(id);
+        }
+        manual_changed = true;
+      }
+
+      // Clean blocked_ids
+      const blocked_needs_update = refs_that_left.some((id) => blocked_ids.has(id));
+      if (blocked_needs_update) {
+        effective_blocked = new Set(blocked_ids);
+        for (const id of refs_that_left) {
+          effective_blocked.delete(id);
+        }
+        blocked_changed = true;
+      }
+    }
+
+    // Compute new selection using cleaned state: (auto - blocked) + manual
+    const new_selection = new Set<string>();
+    for (const id of auto_ids) {
+      if (!effective_blocked.has(id)) {
+        new_selection.add(id);
+      }
+    }
+    for (const id of effective_manual) {
+      new_selection.add(id);
+    }
     const new_array = [...new_selection];
 
     // Only update if changed
@@ -79,7 +138,15 @@ export const use_reference_auto_sync = () => {
     if (has_changed) {
       set_references(new_array);
     }
-  }, [auto_ids, manual_ids, set_references, selected_reference_ids]);
+
+    // Persist the cleaned state after selection update
+    if (manual_changed) {
+      set_manual_ids(effective_manual);
+    }
+    if (blocked_changed) {
+      set_blocked_ids(effective_blocked);
+    }
+  }, [auto_ids, blocked_ids, manual_ids, set_references, selected_reference_ids]);
 
   // Add a reference manually
   const add_manual = useCallback((id: string) => {
@@ -92,26 +159,23 @@ export const use_reference_auto_sync = () => {
   // Remove a reference (from manual or auto)
   const remove_reference = useCallback(
     (id: string) => {
-      // Remove from manual if present
-      set_manual_ids((prev) => {
-        if (!prev.has(id)) return prev;
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-
-      // If it's an auto reference, we can't remove it from auto_ids directly
-      // (it will come back if the component is still selected)
-      // So we track "blocked" auto refs that the user explicitly removed
-      // For simplicity, just remove from the current selection
       if (auto_ids.has(id)) {
-        // Can't block auto refs in this simple implementation
-        // The reference will reappear if the component is reselected
-        const new_selection = selected_reference_ids.filter((ref_id) => ref_id !== id);
-        set_references(new_selection);
+        // Auto ref: add to blocked_ids to prevent auto-selection
+        set_blocked_ids((prev) => {
+          if (prev.has(id)) return prev;
+          return new Set([...prev, id]);
+        });
+      } else {
+        // Manual ref: remove from manual_ids
+        set_manual_ids((prev) => {
+          if (!prev.has(id)) return prev;
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
       }
     },
-    [auto_ids, selected_reference_ids, set_references]
+    [auto_ids]
   );
 
   // Clear all manual references
@@ -122,6 +186,7 @@ export const use_reference_auto_sync = () => {
   return {
     auto_ids,
     manual_ids,
+    blocked_ids,
     add_manual,
     remove_reference,
     clear_manual,
