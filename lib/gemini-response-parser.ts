@@ -36,8 +36,54 @@ export const extract_text_from_response = (
 };
 
 /**
+ * Attempts to find and parse a balanced JSON object from text.
+ * Tracks brace nesting to find complete objects.
+ */
+const find_balanced_json = (text: string): string | null => {
+  const start = text.indexOf("{");
+  if (start === -1) return null;
+
+  let depth = 0;
+  let in_string = false;
+  let escape_next = false;
+
+  for (let i = start; i < text.length; i++) {
+    const char = text[i];
+
+    if (escape_next) {
+      escape_next = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      escape_next = true;
+      continue;
+    }
+
+    if (char === '"') {
+      in_string = !in_string;
+      continue;
+    }
+
+    if (in_string) continue;
+
+    if (char === "{") {
+      depth++;
+    } else if (char === "}") {
+      depth--;
+      if (depth === 0) {
+        return text.slice(start, i + 1);
+      }
+    }
+  }
+
+  return null;
+};
+
+/**
  * Extracts and parses JSON from a Gemini API response.
  * First extracts all text content, then finds and parses JSON object within.
+ * Handles markdown code blocks and finds balanced JSON objects.
  *
  * @param result - The GenerateContentResponse from the Gemini API
  * @returns Object with success status, parsed data (if successful), raw text, and error (if failed)
@@ -47,9 +93,16 @@ export const extract_json_from_response = <T = Record<string, unknown>>(
 ): JsonExtractionResult<T> => {
   const raw_text = extract_text_from_response(result);
 
-  // Extract JSON object from response text
-  const json_match = raw_text.match(/\{[\s\S]*\}/);
-  if (!json_match) {
+  // First, try to extract from markdown code blocks (```json or ```)
+  const code_block_match = raw_text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const text_to_parse = code_block_match ? code_block_match[1] : raw_text;
+
+  // Find balanced JSON object
+  const json_string = find_balanced_json(text_to_parse);
+  if (!json_string) {
+    console.error("[gemini-response-parser] No JSON found in response");
+    console.error("[gemini-response-parser] Raw text:", raw_text);
+    console.error("[gemini-response-parser] Text to parse:", text_to_parse);
     return {
       success: false,
       raw_text,
@@ -58,17 +111,23 @@ export const extract_json_from_response = <T = Record<string, unknown>>(
   }
 
   try {
-    const data = JSON.parse(json_match[0]) as T;
+    const data = JSON.parse(json_string) as T;
     return {
       success: true,
       data,
       raw_text,
     };
-  } catch {
+  } catch (parse_error) {
+    // Include the actual parse error for debugging
+    const error_msg =
+      parse_error instanceof Error ? parse_error.message : "Unknown parse error";
+    console.error("[gemini-response-parser] Failed to parse JSON:", error_msg);
+    console.error("[gemini-response-parser] JSON string attempted:", json_string);
+    console.error("[gemini-response-parser] Raw text:", raw_text);
     return {
       success: false,
       raw_text,
-      error: "Failed to parse JSON from response",
+      error: `Failed to parse JSON from response: ${error_msg}`,
     };
   }
 };

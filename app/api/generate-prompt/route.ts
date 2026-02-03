@@ -47,7 +47,7 @@ export const POST = async (request: Request) => {
 
     if (!result.success) {
       return NextResponse.json(
-        { success: false, error: result.error },
+        { success: false, error: result.error, raw_text: result.raw_text },
         { status: 500 },
       );
     }
