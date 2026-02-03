@@ -7,7 +7,7 @@ import { use_builder_store } from "@/lib/stores/builder-store";
 import { submit_generation, type ComponentUsedInput } from "@/lib/hooks/use-generation";
 import { SavePromptModal } from "@/components/library/save-prompt-modal";
 import Link from "next/link";
-import { Sparkles, Save, Trash2, History, Library, BarChart3 } from "lucide-react";
+import { Sparkles, Save, Trash2, History, Library, BarChart3, Layers } from "lucide-react";
 import type { Component } from "@/lib/types/database";
 
 // Helper to collect all selected components for tagging
@@ -239,6 +239,15 @@ export const BuilderToolbar = () => {
             <Button variant="ghost" size="sm" className="h-7 px-2 text-muted-foreground hover:text-foreground">
               <History className="size-4 mr-1.5" />
               History
+            </Button>
+          </Link>
+
+          <div className="w-px h-4 bg-border mx-1" />
+
+          <Link href="/queue">
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-muted-foreground hover:text-foreground">
+              <Layers className="size-4 mr-1.5" />
+              Queue
             </Button>
           </Link>
 
