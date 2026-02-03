@@ -4,12 +4,24 @@ import { useShallow } from "zustand/react/shallow";
 
 import type { Component } from "@/lib/types/database";
 import type { StandardPrompt } from "@/lib/types/prompt-schema";
-import { 
-  normalize_subject_component, 
-  normalize_shared_component 
+import {
+  normalize_subject_component,
+  normalize_shared_component
 } from "@/lib/prompt-normalizer";
-
-type ResolutionStrategy = "use_first" | "use_last" | "combine";
+import {
+  type ResolutionStrategy,
+  type ConflictInfo,
+  type FieldValues,
+  collect_field_values_deep,
+  resolve_fields,
+  create_field_values,
+} from "@/lib/conflict-resolver";
+import {
+  SHARED_CATEGORY_IDS,
+  SUBJECT_CATEGORY_IDS,
+  is_shared_category,
+} from "@/lib/constants/categories";
+import { undo_manager, type UndoableState } from "./undo-manager";
 
 type Subject = {
   id: string;
@@ -24,13 +36,6 @@ type GenerationSettings = {
   google_search: boolean;
   show_inline_references: boolean;
   show_face_references: boolean;
-};
-
-type ConflictInfo = {
-  id: string; // Unique identifier for this conflict
-  field: string;
-  values: { value: string; source: string }[]; // All conflicting values
-  resolved_value: string; // The value after applying resolution
 };
 
 type BuilderState = {
@@ -88,21 +93,17 @@ type BuilderState = {
   clear_references: () => void;
   set_references: (ids: string[]) => void;
   add_references: (ids: string[]) => void;
+
+  // Undo/Redo actions
+  undo: () => void;
+  redo: () => void;
+  can_undo: boolean;
+  can_redo: boolean;
 };
 
-const SHARED_CATEGORIES = ["scenes", "backgrounds", "camera", "ban_lists"];
-
-// All categories that belong to a subject
-const SUBJECT_CATEGORIES = [
-  "characters",
-  "physical_traits",
-  "jewelry",
-  "wardrobe",
-  "wardrobe_tops",
-  "wardrobe_bottoms",
-  "wardrobe_footwear",
-  "poses"
-];
+// Re-export for backwards compatibility
+const SHARED_CATEGORIES = [...SHARED_CATEGORY_IDS] as string[];
+const SUBJECT_CATEGORIES = [...SUBJECT_CATEGORY_IDS] as string[];
 
 const generate_subject_id = (): string => {
   return `subject-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -125,202 +126,6 @@ const DEFAULT_SETTINGS: GenerationSettings = {
   show_face_references: true,
 };
 
-// Helper to combine string values intelligently
-const combine_strings = (values: string[]): string => {
-  // Remove duplicates and empty strings, then join
-  const unique = [...new Set(values.filter(Boolean))];
-  return unique.join("; ");
-};
-
-// Helper to combine object values recursively
-const combine_objects = (
-  objects: Record<string, unknown>[],
-): Record<string, unknown> => {
-  const result: Record<string, unknown> = {};
-  const all_keys = new Set(objects.flatMap(Object.keys));
-
-  for (const key of all_keys) {
-    const values = objects
-      .map((obj) => obj[key])
-      .filter((v) => v !== undefined);
-    if (values.length === 0) continue;
-
-    if (values.every((v) => typeof v === "string")) {
-      result[key] = combine_strings(values as string[]);
-    } else if (
-      values.every(
-        (v) => typeof v === "object" && v !== null && !Array.isArray(v),
-      )
-    ) {
-      result[key] = combine_objects(values as Record<string, unknown>[]);
-    } else {
-      // For mixed types or arrays, use last value
-      result[key] = values[values.length - 1];
-    }
-  }
-
-  return result;
-};
-
-// Apply resolution strategy to get final value
-const apply_resolution = (
-  values: { value: unknown; source: string }[],
-  resolution: ResolutionStrategy,
-  is_array_merge = false
-): unknown => {
-  if (values.length === 0) return undefined;
-  if (values.length === 1) return values[0].value;
-
-  // If this is an array field (like accessories), always combine
-  if (is_array_merge) {
-    const all_items: unknown[] = [];
-    for (const v of values) {
-      if (Array.isArray(v.value)) all_items.push(...v.value);
-      else if (v.value) all_items.push(v.value);
-    }
-    // De-duplicate primitives
-    const unique = [...new Set(all_items)];
-    return unique;
-  }
-
-  switch (resolution) {
-    case "use_first":
-      return values[0].value;
-    case "use_last":
-      return values[values.length - 1].value;
-    case "combine":
-      if (values.every((v) => typeof v.value === "string")) {
-        return combine_strings(values.map((v) => v.value as string));
-      } else if (
-        values.every(
-          (v) =>
-            typeof v.value === "object" &&
-            v.value !== null &&
-            !Array.isArray(v.value),
-        )
-      ) {
-        return combine_objects(
-          values.map((v) => v.value as Record<string, unknown>),
-        );
-      }
-      // Fall back to last value for unsupported types
-      return values[values.length - 1].value;
-  }
-};
-
-type FieldValues = Map<string, { value: unknown; source: string }[]>;
-
-const is_plain_object = (val: unknown): val is Record<string, unknown> => {
-  return typeof val === "object" && val !== null && !Array.isArray(val);
-};
-
-/**
- * Recursively collect field values at all nesting levels
- * Uses dot-notation paths (e.g., "subject.hair", "subject.appearance.color")
- */
-const collect_field_values_deep = (
-  fields: FieldValues,
-  data: Record<string, unknown>,
-  source: string,
-  path_prefix = "",
-): void => {
-  for (const [key, value] of Object.entries(data)) {
-    const path = path_prefix ? `${path_prefix}.${key}` : key;
-
-    if (is_plain_object(value)) {
-      // Recurse into nested objects
-      collect_field_values_deep(fields, value, source, path);
-    } else {
-      // Leaf value - collect it
-      if (!fields.has(path)) {
-        fields.set(path, []);
-      }
-      fields.get(path)!.push({ value, source });
-    }
-  }
-};
-
-/**
- * Set a value at a nested path in an object
- * e.g., set_nested(obj, "subject.hair", "long") sets obj.subject.hair = "long"
- */
-const set_nested = (
-  obj: Record<string, unknown>,
-  path: string,
-  value: unknown,
-): void => {
-  const parts = path.split(".");
-  let current = obj;
-
-  for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i];
-    if (!is_plain_object(current[part])) {
-      current[part] = {};
-    }
-    current = current[part] as Record<string, unknown>;
-  }
-
-  current[parts[parts.length - 1]] = value;
-};
-
-/**
- * Resolve fields with deep conflict detection
- * Detects conflicts at leaf level and builds nested result structure
- */
-const resolve_fields_deep = (
-  fields: FieldValues,
-  resolutions: Record<string, ResolutionStrategy>,
-  section_prefix: string,
-  conflicts: ConflictInfo[],
-): Record<string, unknown> => {
-  const result: Record<string, unknown> = {};
-
-  for (const [path, values] of fields) {
-    const conflict_id = `${section_prefix}.${path}`;
-    const resolution = resolutions[conflict_id] ?? "use_last";
-
-    // Check if this is a field that should always merge arrays (e.g. accessories)
-    const is_array_merge = path.endsWith("accessories") || path.endsWith("negative_prompt");
-
-    // Detect conflicts (more than one unique value) - skip conflict for array merge types
-    const unique_values = values.filter(
-      (v, i, arr) =>
-        arr.findIndex(
-          (a) => JSON.stringify(a.value) === JSON.stringify(v.value),
-        ) === i,
-    );
-
-    if (unique_values.length > 1 && !is_array_merge) {
-      const resolved_value = apply_resolution(values, resolution);
-      conflicts.push({
-        id: conflict_id,
-        field: path.split(".").pop() ?? path,
-        values: values.map((v) => ({
-          value: String(v.value),
-          source: v.source,
-        })),
-        resolved_value: String(resolved_value),
-      });
-      set_nested(result, path, resolved_value);
-    } else {
-      // No conflict or it's an array merge
-      const final_value = apply_resolution(values, resolution, is_array_merge);
-      set_nested(result, path, final_value);
-    }
-  }
-
-  return result;
-};
-
-const resolve_fields = (
-  fields: FieldValues,
-  resolutions: Record<string, ResolutionStrategy>,
-  section_prefix: string,
-  conflicts: ConflictInfo[],
-): Record<string, unknown> => {
-  return resolve_fields_deep(fields, resolutions, section_prefix, conflicts);
-};
-
 // Compose a single subject from all its component selections
 const compose_subject = (
   selections: Record<string, Component[]>,
@@ -328,7 +133,7 @@ const compose_subject = (
   conflicts: ConflictInfo[],
   subject_idx: number
 ): Record<string, unknown> => {
-  const subject_fields: FieldValues = new Map();
+  const subject_fields: FieldValues = create_field_values();
 
   // Iterate all subject-related categories
   for (const category_id of SUBJECT_CATEGORIES) {
@@ -400,7 +205,7 @@ const compose_prompt = (
       }
     } else {
       // Resolve conflicts for shared components
-      const shared_fields: FieldValues = new Map();
+      const shared_fields: FieldValues = create_field_values();
       for (const c of normalized_components) {
         collect_field_values_deep(shared_fields, c.data, c.name);
       }
@@ -450,7 +255,39 @@ export const use_builder_store = create<BuilderState>()(
         });
       };
 
+      // Helper to get undoable state snapshot
+      const get_undoable_state = (): UndoableState => {
+        const state = get();
+        return {
+          subjects: state.subjects,
+          shared_selections: state.shared_selections,
+          selected_reference_ids: state.selected_reference_ids,
+          active_subject_id: state.active_subject_id,
+        };
+      };
+
+      // Helper to push current state to undo stack before making a change
+      const push_undo = (description: string) => {
+        undo_manager.push(description);
+        undo_manager.update(get_undoable_state());
+        set({ can_undo: undo_manager.can_undo(), can_redo: undo_manager.can_redo() });
+      };
+
+      // Helper to update undo manager after state change
+      const update_undo_state = () => {
+        undo_manager.update(get_undoable_state());
+        set({ can_undo: undo_manager.can_undo(), can_redo: undo_manager.can_redo() });
+      };
+
       const initial_subject = create_empty_subject();
+
+      // Initialize undo manager with initial state
+      undo_manager.initialize({
+        subjects: [initial_subject],
+        shared_selections: {},
+        selected_reference_ids: [],
+        active_subject_id: initial_subject.id,
+      });
 
       return {
         subjects: [initial_subject],
@@ -466,6 +303,8 @@ export const use_builder_store = create<BuilderState>()(
         queue_position: null,
         conflicts: [],
         conflict_resolutions: {},
+        can_undo: false,
+        can_redo: false,
 
         set_active_category: (category) => {
           set({ active_category: category });
@@ -483,6 +322,9 @@ export const use_builder_store = create<BuilderState>()(
 
         select_component: (category_id, component) => {
           const state = get();
+
+          // Push to undo stack before making change
+          push_undo(`Toggle ${component.name}`);
 
           if (SHARED_CATEGORIES.includes(category_id)) {
             // Shared selection - toggle: add if not present, remove if present
@@ -524,6 +366,9 @@ export const use_builder_store = create<BuilderState>()(
           // Recompute prompt and conflicts
           recompute_prompt();
 
+          // Update undo state
+          update_undo_state();
+
           // Track usage for stats (only when adding)
           const current_selection = SHARED_CATEGORIES.includes(category_id)
             ? (state.shared_selections[category_id] ?? [])
@@ -543,6 +388,9 @@ export const use_builder_store = create<BuilderState>()(
 
         deselect_component: (category_id, component_id) => {
           const state = get();
+
+          // Push to undo stack
+          push_undo("Deselect component");
 
           if (SHARED_CATEGORIES.includes(category_id)) {
             const current = state.shared_selections[category_id] ?? [];
@@ -572,10 +420,14 @@ export const use_builder_store = create<BuilderState>()(
           }
 
           recompute_prompt();
+          update_undo_state();
         },
 
         clear_category: (category_id) => {
           const state = get();
+
+          // Push to undo stack
+          push_undo("Clear category");
 
           if (SHARED_CATEGORIES.includes(category_id)) {
             set({
@@ -598,6 +450,7 @@ export const use_builder_store = create<BuilderState>()(
           }
 
           recompute_prompt();
+          update_undo_state();
         },
 
         set_conflict_resolution: (conflict_id, resolution) => {
@@ -760,6 +613,37 @@ export const use_builder_store = create<BuilderState>()(
               selected_reference_ids: [...state.selected_reference_ids, ...new_ids],
             };
           });
+        },
+
+        // Undo/Redo actions
+        undo: () => {
+          const restored_state = undo_manager.undo();
+          if (restored_state) {
+            set({
+              subjects: restored_state.subjects,
+              shared_selections: restored_state.shared_selections,
+              selected_reference_ids: restored_state.selected_reference_ids,
+              active_subject_id: restored_state.active_subject_id,
+              can_undo: undo_manager.can_undo(),
+              can_redo: undo_manager.can_redo(),
+            });
+            recompute_prompt();
+          }
+        },
+
+        redo: () => {
+          const restored_state = undo_manager.redo();
+          if (restored_state) {
+            set({
+              subjects: restored_state.subjects,
+              shared_selections: restored_state.shared_selections,
+              selected_reference_ids: restored_state.selected_reference_ids,
+              active_subject_id: restored_state.active_subject_id,
+              can_undo: undo_manager.can_undo(),
+              can_redo: undo_manager.can_redo(),
+            });
+            recompute_prompt();
+          }
         },
       };
     },
