@@ -1,22 +1,54 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { ProcessingIndicator } from "./processing-indicator";
 import { use_elapsed_time, format_elapsed_time } from "@/lib/hooks/use-elapsed-time";
-import { Clock, Image, Search, Shield, RefreshCw, AlertTriangle } from "lucide-react";
+import { Clock, Image, Search, Shield, RefreshCw, AlertTriangle, X } from "lucide-react";
 import type { QueueItemWithPosition } from "@/lib/repositories/queue";
 
 type QueueItemCardProps = {
   item: QueueItemWithPosition;
+  on_delete?: () => void;
 };
 
-export const QueueItemCard = ({ item }: QueueItemCardProps) => {
+export const QueueItemCard = ({ item, on_delete }: QueueItemCardProps) => {
+  const [is_deleting, set_is_deleting] = useState(false);
+  const [dialog_open, set_dialog_open] = useState(false);
   const elapsed_seconds = use_elapsed_time(item.started_at);
   const waiting_seconds = use_elapsed_time(item.created_at);
 
   const prompt_summary = get_prompt_summary(item.prompt_json);
   const reference_count = item.reference_photo_ids?.length ?? 0;
+
+  const handle_delete = async () => {
+    set_is_deleting(true);
+    try {
+      const response = await fetch(`/api/queue/${item.id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        set_dialog_open(false);
+        on_delete?.();
+      }
+    } finally {
+      set_is_deleting(false);
+    }
+  };
 
   return (
     <Card size="sm">
@@ -92,6 +124,42 @@ export const QueueItemCard = ({ item }: QueueItemCardProps) => {
               )}
             </div>
           </div>
+
+          <AlertDialog open={dialog_open} onOpenChange={set_dialog_open}>
+            <AlertDialogTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 text-muted-foreground hover:text-destructive shrink-0"
+                />
+              }
+            >
+              <X className="size-4" />
+            </AlertDialogTrigger>
+            <AlertDialogContent size="sm">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Cancel generation?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {item.status === "processing"
+                    ? "This will stop the generation in progress. The API call may still complete but the result will be discarded."
+                    : "This will remove the item from the queue."}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={is_deleting}>
+                  Keep
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={handle_delete}
+                  disabled={is_deleting}
+                >
+                  {is_deleting ? "Cancelling..." : "Cancel"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </CardContent>
     </Card>

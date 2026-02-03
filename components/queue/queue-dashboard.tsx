@@ -53,7 +53,11 @@ export const QueueDashboard = () => {
           </TabsList>
 
           <TabsContent value="active" className="mt-6">
-            <QueueList processing_items={processing_items} queued_items={queued_items} />
+            <QueueList
+              processing_items={processing_items}
+              queued_items={queued_items}
+              on_item_delete={() => mutate()}
+            />
           </TabsContent>
 
           <TabsContent value="history" className="mt-6">

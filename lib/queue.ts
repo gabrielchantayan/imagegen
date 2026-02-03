@@ -1,5 +1,6 @@
 import { get_db, generate_id } from "./db";
 import { now } from "./db-helpers";
+import { release_lock_for_item } from "./queue-locks";
 import type { QueueItem, QueueStatus } from "./types/database";
 
 const MAX_CONCURRENT = 5;
@@ -163,4 +164,48 @@ export const cleanup_queue = (): void => {
       LIMIT 100
     )
   `).run();
+};
+
+export type DeleteQueueItemResult = {
+  success: boolean;
+  error?: string;
+};
+
+export const delete_queue_item = (id: string): DeleteQueueItemResult => {
+  const db = get_db();
+  const item = get_queue_item(id);
+
+  if (!item) {
+    return { success: false, error: "Queue item not found" };
+  }
+
+  if (item.status === "completed" || item.status === "failed") {
+    return { success: false, error: "Cannot delete completed or failed items" };
+  }
+
+  try {
+    db.transaction(() => {
+      // Release any lock on this item (for processing items)
+      release_lock_for_item(id);
+
+      // Update the linked generation to failed status
+      if (item.generation_id) {
+        db.prepare(`
+          UPDATE generations
+          SET status = 'failed', error_message = 'Cancelled by user'
+          WHERE id = ? AND status IN ('pending', 'generating')
+        `).run(item.generation_id);
+      }
+
+      // Delete the queue item
+      db.prepare("DELETE FROM generation_queue WHERE id = ?").run(id);
+    })();
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete queue item"
+    };
+  }
 };
