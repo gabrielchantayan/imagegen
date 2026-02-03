@@ -209,6 +209,10 @@ export const face_swap_edit = async (
   base_mime_type: string,
   reference_image: Buffer,
   reference_mime_type: string,
+  options?: {
+    aspect_ratio?: string;
+    image_size?: string;
+  }
 ): Promise<FaceSwapResult> => {
   try {
     const model_name =
@@ -265,6 +269,14 @@ A single, high-fidelity image where the character from Image 2 is "performing" t
       contents: [{ role: "user", parts }],
       config: {
         responseModalities: ["IMAGE", "TEXT"],
+        ...(options?.aspect_ratio || options?.image_size
+          ? {
+              imageConfig: {
+                ...(options.aspect_ratio && { aspectRatio: options.aspect_ratio }),
+                ...(options.image_size && { imageSize: options.image_size }),
+              },
+            }
+          : {}),
       },
     });
 

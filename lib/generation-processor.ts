@@ -119,7 +119,8 @@ export const process_queue = async (): Promise<void> => {
               base_result.images[0],
               base_result.mime_type!,
               reference_images[0].data,
-              reference_images[0].mime_type
+              reference_images[0].mime_type,
+              { aspect_ratio: "3:4", image_size: "4K" }
             );
 
             if (swap_result.success && swap_result.image) {
