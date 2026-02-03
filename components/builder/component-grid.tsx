@@ -32,6 +32,7 @@ export const ComponentGrid = () => {
   const subjects = use_builder_store((s) => s.subjects);
   const active_subject_id = use_builder_store((s) => s.active_subject_id);
   const shared_selections = use_builder_store((s) => s.shared_selections);
+  const show_inline_references = use_builder_store((s) => s.settings.show_inline_references);
 
   const { components, categories, is_loading, mutate } = use_components(active_category);
   const [search, set_search] = useState("");
@@ -220,6 +221,7 @@ export const ComponentGrid = () => {
                 component={component}
                 selected={selection_order_map.has(component.id)}
                 selection_order={selection_order_map.get(component.id)}
+                show_inline_references={show_inline_references}
                 on_select={() => handle_select(component)}
                 on_edit={() => {
                   set_editing_component(component);

@@ -112,6 +112,18 @@ export const SettingsDropdown = () => {
         >
           Google Search
         </DropdownMenuCheckboxItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+          Display
+        </DropdownMenuLabel>
+        <DropdownMenuCheckboxItem
+          checked={settings.show_inline_references}
+          onCheckedChange={(checked) => update_settings({ show_inline_references: checked })}
+        >
+          Show Reference Images
+        </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

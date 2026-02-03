@@ -17,6 +17,7 @@ type GenerationSettings = {
   image_count: 1 | 2 | 3 | 4;
   safety_override: boolean;
   google_search: boolean;
+  show_inline_references: boolean;
 };
 
 type ConflictInfo = {
@@ -101,6 +102,7 @@ const DEFAULT_SETTINGS: GenerationSettings = {
   image_count: 1,
   safety_override: false,
   google_search: false,
+  show_inline_references: true,
 };
 
 // Categories that contribute to body/subject

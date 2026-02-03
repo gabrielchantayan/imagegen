@@ -10,6 +10,7 @@ type ComponentCardProps = {
   component: Component;
   selected?: boolean;
   selection_order?: number;
+  show_inline_references?: boolean;
   on_select?: () => void;
   on_edit?: () => void;
 };
@@ -18,9 +19,13 @@ export const ComponentCard = ({
   component,
   selected,
   selection_order,
+  show_inline_references = true,
   on_select,
   on_edit
 }: ComponentCardProps) => {
+  const has_references = component.inline_references && component.inline_references.length > 0;
+  const show_image = show_inline_references && has_references;
+
   return (
     <Card
       className={cn(
@@ -29,21 +34,41 @@ export const ComponentCard = ({
       )}
       onClick={on_select}
     >
-      <div className="px-3 py-1.5">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className={cn(
-            "text-base font-semibold leading-tight tracking-tight pr-6",
-            selected && "text-primary"
-          )}>
-            {component.name}
-          </h3>
-        </div>
-        
-        {component.description && (
-          <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-            {component.description}
-          </p>
+      <div className={cn("flex gap-3 px-3 py-1.5", show_image && "pl-1.5")}>
+        {/* Reference image thumbnail */}
+        {show_image && (
+          <div className="relative shrink-0 w-12 h-12 bg-muted/30 rounded-md overflow-hidden border">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={component.inline_references[0]}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+            {component.inline_references.length > 1 && (
+              <div className="absolute bottom-0 left-0 bg-black/60 text-white text-[10px] px-1 rounded-tr-md">
+                +{component.inline_references.length - 1}
+              </div>
+            )}
+          </div>
         )}
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className={cn(
+              "text-base font-semibold leading-tight tracking-tight pr-6",
+              selected && "text-primary"
+            )}>
+              {component.name}
+            </h3>
+          </div>
+
+          {component.description && (
+            <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+              {component.description}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Selection indicator */}
