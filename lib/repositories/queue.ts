@@ -19,6 +19,8 @@ type RawQueueItem = {
 export type QueueItemWithPosition = QueueItem & {
   generation_id: string | null;
   position: number | null;
+  used_fallback: boolean;
+  face_swap_failed: boolean;
 };
 
 const parse_queue_item = (row: RawQueueItem): QueueItem & { generation_id: string | null } => {
@@ -85,15 +87,22 @@ export const get_queue_metrics = (): QueueMetrics => {
 export const get_active_queue_items = (): QueueItemWithPosition[] => {
   const db = get_db();
 
-  type RawQueueItemWithPosition = RawQueueItem & { position: number | null };
+  type RawQueueItemWithPosition = RawQueueItem & {
+    position: number | null;
+    used_fallback: number | null;
+    face_swap_failed: number | null;
+  };
 
   const rows = db.prepare(`
     SELECT q.*,
       CASE WHEN q.status = 'queued' THEN (
         SELECT COUNT(*) FROM generation_queue
         WHERE status = 'queued' AND created_at <= q.created_at
-      ) ELSE NULL END as position
+      ) ELSE NULL END as position,
+      g.used_fallback,
+      g.face_swap_failed
     FROM generation_queue q
+    LEFT JOIN generations g ON q.generation_id = g.id
     WHERE q.status IN ('queued', 'processing')
     ORDER BY CASE q.status WHEN 'processing' THEN 0 ELSE 1 END, q.created_at
   `).all() as RawQueueItemWithPosition[];
@@ -101,6 +110,8 @@ export const get_active_queue_items = (): QueueItemWithPosition[] => {
   return rows.map((row) => ({
     ...parse_queue_item(row),
     position: row.position,
+    used_fallback: row.used_fallback === 1,
+    face_swap_failed: row.face_swap_failed === 1,
   }));
 };
 
@@ -114,6 +125,8 @@ export type QueueHistoryItem = QueueItem & {
   generation_id: string | null;
   duration_seconds: number | null;
   image_path: string | null;
+  used_fallback: boolean;
+  face_swap_failed: boolean;
 };
 
 export const get_queue_history = (
@@ -134,6 +147,8 @@ export const get_queue_history = (
   type RawHistoryItem = RawQueueItem & {
     duration_seconds: number | null;
     image_path: string | null;
+    used_fallback: number | null;
+    face_swap_failed: number | null;
   };
 
   const query = `
@@ -141,7 +156,9 @@ export const get_queue_history = (
       CASE WHEN q.completed_at IS NOT NULL AND q.created_at IS NOT NULL
         THEN (julianday(q.completed_at) - julianday(q.created_at)) * 86400
         ELSE NULL END as duration_seconds,
-      g.image_path
+      g.image_path,
+      g.used_fallback,
+      g.face_swap_failed
     FROM generation_queue q
     LEFT JOIN generations g ON q.generation_id = g.id
     WHERE ${where_clause}
@@ -165,6 +182,8 @@ export const get_queue_history = (
       ...parse_queue_item(row),
       duration_seconds: row.duration_seconds,
       image_path: row.image_path,
+      used_fallback: row.used_fallback === 1,
+      face_swap_failed: row.face_swap_failed === 1,
     })),
   };
 };

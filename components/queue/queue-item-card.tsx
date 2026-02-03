@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProcessingIndicator } from "./processing-indicator";
 import { use_elapsed_time, format_elapsed_time } from "@/lib/hooks/use-elapsed-time";
-import { Clock, Image, Search, Shield } from "lucide-react";
+import { Clock, Image, Search, Shield, RefreshCw, AlertTriangle } from "lucide-react";
 import type { QueueItemWithPosition } from "@/lib/repositories/queue";
 
 type QueueItemCardProps = {
@@ -49,6 +49,20 @@ export const QueueItemCard = ({ item }: QueueItemCardProps) => {
                 <Badge variant="outline" className="gap-1 text-amber-600 border-amber-500/30">
                   <Shield className="size-3" />
                   Override
+                </Badge>
+              )}
+
+              {item.status === "processing" && item.used_fallback && !item.face_swap_failed && (
+                <Badge variant="outline" className="gap-1 text-amber-600 border-amber-500/30">
+                  <RefreshCw className="size-3" />
+                  Fallback
+                </Badge>
+              )}
+
+              {item.status === "processing" && item.face_swap_failed && (
+                <Badge variant="outline" className="gap-1 text-red-600 border-red-500/30">
+                  <AlertTriangle className="size-3" />
+                  Swap Failed
                 </Badge>
               )}
             </div>

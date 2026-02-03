@@ -143,6 +143,12 @@ const process_single_item = async (item: ReturnType<typeof get_next_in_queue>): 
     if (!result.success && reference_images.length > 0) {
       log.info("Generation with reference failed, attempting fallback", { error: result.error });
 
+      // Mark fallback immediately so polling UI can show status
+      if (item.generation_id) {
+        update_generation(item.generation_id, { used_fallback: true });
+      }
+      used_fallback = true;
+
       // Try generation without references
       const base_result = await generate_image(item.prompt_json, {
         aspect_ratio: "3:4",
@@ -178,12 +184,10 @@ const process_single_item = async (item: ReturnType<typeof get_next_in_queue>): 
             mime_type: swap_result.mime_type,
             text_response: base_result.text_response,
           };
-          used_fallback = true;
         } else {
           // Face swap failed, use base image anyway
           log.warn("Face swap failed, using base image", { error: swap_result.error });
           result = base_result;
-          used_fallback = true;
           face_swap_failed = true;
         }
       }

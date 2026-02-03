@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { use_queue_history } from "@/lib/hooks/use-queue-history";
 import { format_duration } from "@/lib/hooks/use-elapsed-time";
-import { CheckCircle, XCircle, ChevronLeft, ChevronRight, Image } from "lucide-react";
+import { CheckCircle, XCircle, ChevronLeft, ChevronRight, Image, RefreshCw, AlertTriangle } from "lucide-react";
 
 type StatusFilter = "all" | "completed" | "failed";
 
@@ -67,17 +67,31 @@ export const QueueHistory = () => {
               {items.map((item) => (
                 <tr key={item.id} className="hover:bg-muted/30">
                   <td className="py-3 px-4">
-                    {item.status === "completed" ? (
-                      <Badge variant="default" className="bg-green-500/20 text-green-600 border-green-500/30 gap-1">
-                        <CheckCircle className="size-3" />
-                        Completed
-                      </Badge>
-                    ) : (
-                      <Badge variant="destructive" className="gap-1">
-                        <XCircle className="size-3" />
-                        Failed
-                      </Badge>
-                    )}
+                    <div className="flex flex-col gap-1">
+                      {item.status === "completed" ? (
+                        <Badge variant="default" className="bg-green-500/20 text-green-600 border-green-500/30 gap-1 w-fit">
+                          <CheckCircle className="size-3" />
+                          Completed
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive" className="gap-1 w-fit">
+                          <XCircle className="size-3" />
+                          Failed
+                        </Badge>
+                      )}
+                      {item.used_fallback && !item.face_swap_failed && (
+                        <Badge variant="outline" className="gap-1 text-amber-600 border-amber-500/30 w-fit text-xs">
+                          <RefreshCw className="size-3" />
+                          Face Swapped
+                        </Badge>
+                      )}
+                      {item.face_swap_failed && (
+                        <Badge variant="outline" className="gap-1 text-red-600 border-red-500/30 w-fit text-xs">
+                          <AlertTriangle className="size-3" />
+                          Swap Failed
+                        </Badge>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3 px-4 max-w-[300px]">
                     <p className="truncate text-foreground">
