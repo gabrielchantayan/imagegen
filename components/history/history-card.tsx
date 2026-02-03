@@ -29,7 +29,7 @@ export const HistoryCard = ({
         group relative aspect-[3/4] rounded-lg overflow-hidden cursor-pointer bg-muted
         transition-all duration-150
         ${is_selected ? "ring-2 ring-primary ring-offset-2" : ""}
-        ${is_focused ? "ring-2 ring-ring ring-offset-1" : ""}
+        ${is_focused && !is_selected ? "ring-2 ring-sky-500 ring-offset-2 scale-[1.02] shadow-lg shadow-sky-500/25" : ""}
         ${!is_selected && !is_focused ? "hover:ring-1 hover:ring-muted-foreground/30" : ""}
       `}
       onClick={on_click}
