@@ -506,13 +506,11 @@ const SingleState = ({
       {/* Image preview - full size */}
       <div className="relative bg-muted">
         {item.image_path ? (
-          <Image
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
             src={item.image_path}
             alt=""
-            width={1024}
-            height={1536}
             className="w-full h-auto"
-            sizes="(max-width: 768px) 100vw, 400px"
           />
         ) : (
           <div className="w-full aspect-[3/4] flex items-center justify-center text-muted-foreground">
