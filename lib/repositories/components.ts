@@ -59,6 +59,15 @@ export const get_component = (id: string): Component | null => {
   return row ? parse_component(row) : null;
 };
 
+// Get multiple components by ID
+export const get_components_by_ids = (ids: string[]): Component[] => {
+  if (ids.length === 0) return [];
+  const db = get_db();
+  const placeholders = ids.map(() => '?').join(',');
+  const rows = db.prepare(`SELECT * FROM components WHERE id IN (${placeholders})`).all(...ids) as RawComponent[];
+  return rows.map(parse_component);
+};
+
 // Create component input
 export type CreateComponentInput = {
   category_id: string;

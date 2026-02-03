@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
-import { Star, Trash2, Download, Copy, ImageIcon, Heart, Archive, Plus, X, Clipboard, User, RefreshCw, AlertTriangle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Star, Trash2, Download, Copy, ImageIcon, Heart, Archive, Plus, X, Clipboard, User, RefreshCw, AlertTriangle, Wand2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { DetailPanelState } from "@/lib/stores/history-store";
 import type { GenerationWithFavorite } from "@/lib/types/database";
+import { use_builder_actions } from "@/lib/stores/builder-store";
+
 
 // Category color mapping for grouped tag display
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -414,12 +417,15 @@ const SingleState = ({
   on_close: () => void;
   on_update?: () => void;
 }) => {
+  const router = useRouter();
+  const { restore_from_generation } = use_builder_actions();
   const [prompt_text, set_prompt_text] = useState(
     JSON.stringify(item.prompt_json, null, 2)
   );
   const [show_delete_dialog, set_show_delete_dialog] = useState(false);
   const [new_tag, set_new_tag] = useState("");
   const [is_adding_tag, set_is_adding_tag] = useState(false);
+  const [is_remixing, set_is_remixing] = useState(false);
   const [references, set_references] = useState<ReferencePhoto[]>([]);
 
   // Fetch reference photos if this generation used any
@@ -441,6 +447,38 @@ const SingleState = ({
       })
       .catch(() => set_references([]));
   }, [item.reference_photo_ids]);
+
+  const handle_remix = async () => {
+    if (is_remixing) return;
+    set_is_remixing(true);
+
+    try {
+      if (item.components_used && item.components_used.length > 0) {
+        const ids = item.components_used.map((c) => c.id);
+        const res = await fetch("/api/components/batch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          restore_from_generation(data.components);
+          router.push("/builder");
+          return;
+        }
+      }
+      
+      // Fallback to simple JSON load if fetching components fails or none exist
+      handle_use_prompt();
+      router.push("/builder");
+    } catch (e) {
+      console.error("Remix failed:", e);
+      handle_use_prompt();
+    } finally {
+      set_is_remixing(false);
+    }
+  };
 
   const handle_use_prompt = () => {
     try {
@@ -520,6 +558,22 @@ const SingleState = ({
 
         {/* Overlay actions */}
         <div className="absolute top-2 right-2 flex gap-1">
+          {item.image_path && (
+            <a
+              href={item.image_path}
+              download={`generation-${item.id}.png`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button
+                variant="secondary"
+                size="icon"
+                className="size-8"
+                title="Download"
+              >
+                <Download className="size-4" />
+              </Button>
+            </a>
+          )}
           <Button
             variant="secondary"
             size="icon"
@@ -663,26 +717,24 @@ const SingleState = ({
             variant="default"
             size="sm"
             className="w-full"
+            onClick={handle_remix}
+            disabled={is_remixing}
+          >
+            <Wand2 className="size-4 mr-2" />
+            {is_remixing ? "Loading..." : "Remix in Builder"}
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
             onClick={handle_use_prompt}
           >
             <Copy className="size-4 mr-2" />
-            Use in Builder
+            Copy JSON to Builder
           </Button>
 
           <div className="flex gap-2">
-            {item.image_path && (
-              <a
-                href={item.image_path}
-                download={`generation-${item.id}.png`}
-                className="flex-1"
-              >
-                <Button variant="outline" size="sm" className="w-full">
-                  <Download className="size-4 mr-2" />
-                  Download
-                </Button>
-              </a>
-            )}
-
             <Button
               variant="outline"
               size="sm"

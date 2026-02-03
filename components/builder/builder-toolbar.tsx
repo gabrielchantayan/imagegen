@@ -6,6 +6,7 @@ import { SettingsDropdown } from "./settings-dropdown";
 import { use_builder_store } from "@/lib/stores/builder-store";
 import { submit_generation, type ComponentUsedInput } from "@/lib/hooks/use-generation";
 import { SavePromptModal } from "@/components/library/save-prompt-modal";
+import { use_keyboard_shortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
 import Link from "next/link";
 import { Sparkles, Save, Trash2, History, Library, BarChart3, Layers } from "lucide-react";
 import type { Component } from "@/lib/types/database";
@@ -168,19 +169,10 @@ export const BuilderToolbar = () => {
     set_save_modal_open(true);
   };
 
-  useEffect(() => {
-    const handle_keydown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-        e.preventDefault();
-        if (composed_prompt && generation_status === "idle") {
-          handle_generate();
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handle_keydown);
-    return () => window.removeEventListener("keydown", handle_keydown);
-  }, [composed_prompt, generation_status, handle_generate]);
+  use_keyboard_shortcuts({
+    on_generate: handle_generate,
+    on_save: handle_save_prompt,
+  });
 
   useEffect(() => {
     return () => stop_polling();

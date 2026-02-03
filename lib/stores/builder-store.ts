@@ -80,6 +80,7 @@ type BuilderState = {
   set_last_generated_image: (path: string | null) => void;
   set_queue_position: (position: number | null) => void;
   set_generation_error: (error: string | null) => void;
+  restore_from_generation: (components: Component[]) => void;
 
   // Reference actions
   select_reference: (id: string) => void;
@@ -685,6 +686,42 @@ export const use_builder_store = create<BuilderState>()(
           set({ generation_error: error });
         },
 
+        restore_from_generation: (components) => {
+          const new_subject = create_empty_subject();
+          const shared_selections: Record<string, Component[]> = {};
+
+          // Sort components
+          for (const component of components) {
+            if (SHARED_CATEGORIES.includes(component.category_id)) {
+              if (!shared_selections[component.category_id]) {
+                shared_selections[component.category_id] = [];
+              }
+              shared_selections[component.category_id].push(component);
+            } else {
+              // Put everything in the first subject
+              if (!new_subject.selections[component.category_id]) {
+                new_subject.selections[component.category_id] = [];
+              }
+              new_subject.selections[component.category_id].push(component);
+            }
+          }
+
+          set({
+            subjects: [new_subject],
+            active_subject_id: new_subject.id,
+            shared_selections: shared_selections,
+            composed_prompt: null,
+            conflicts: [],
+            conflict_resolutions: {},
+            last_generated_image: null,
+            generation_status: "idle",
+            generation_error: null,
+            selected_reference_ids: [],
+          });
+          
+          recompute_prompt();
+        },
+
         // Reference actions
         select_reference: (id) => {
           set((state) => {
@@ -823,6 +860,7 @@ export const use_builder_actions = () =>
       remove_subject: s.remove_subject,
       set_active_subject: s.set_active_subject,
       clear_builder: s.clear_builder,
+      restore_from_generation: s.restore_from_generation,
     }))
   );
 
