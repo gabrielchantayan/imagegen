@@ -8,8 +8,8 @@
 
 1. **Clone & Install**
    ```bash
-   git clone <repo-url>
-   cd nanobanana-imggen
+   git clone https://github.com/gabrielchantayan/imagegen.git
+   cd imagegen 
    bun install
    ```
 
@@ -18,6 +18,7 @@
    ```env
    GEMINI_API_KEY=your_api_key_here
    GEMINI_MODEL=gemini-3-pro-image-preview
+   GEMINI_ANALYSIS_MODEL=gemini-3-pro-preview
    APP_PASSWORD=your_access_password
    JWT_SECRET=random_secure_string
    ```
