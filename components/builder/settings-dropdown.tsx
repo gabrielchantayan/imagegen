@@ -9,6 +9,9 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { Settings } from "lucide-react";
 
@@ -43,59 +46,70 @@ export const SettingsDropdown = () => {
         <DropdownMenuLabel>Generation Settings</DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-          Aspect Ratio
-        </DropdownMenuLabel>
-        <DropdownMenuRadioGroup
-          value={settings.aspect_ratio}
-          onValueChange={(value) =>
-            update_settings({
-              aspect_ratio: value as typeof settings.aspect_ratio,
-            })
-          }
-        >
-          {ASPECT_RATIOS.map((ratio) => (
-            <DropdownMenuRadioItem key={ratio.value} value={ratio.value}>
-              {ratio.label}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <span className="flex-1">Aspect Ratio</span>
+            <span className="text-muted-foreground text-xs">{settings.aspect_ratio}</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuRadioGroup
+              value={settings.aspect_ratio}
+              onValueChange={(value) =>
+                update_settings({
+                  aspect_ratio: value as typeof settings.aspect_ratio,
+                })
+              }
+            >
+              {ASPECT_RATIOS.map((ratio) => (
+                <DropdownMenuRadioItem key={ratio.value} value={ratio.value}>
+                  {ratio.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
 
-        <DropdownMenuSeparator />
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <span className="flex-1">Resolution</span>
+            <span className="text-muted-foreground text-xs">{settings.resolution}</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuRadioGroup
+              value={settings.resolution}
+              onValueChange={(value) =>
+                update_settings({ resolution: value as typeof settings.resolution })
+              }
+            >
+              {RESOLUTIONS.map((res) => (
+                <DropdownMenuRadioItem key={res.value} value={res.value}>
+                  {res.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
 
-        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-          Resolution
-        </DropdownMenuLabel>
-        <DropdownMenuRadioGroup
-          value={settings.resolution}
-          onValueChange={(value) =>
-            update_settings({ resolution: value as typeof settings.resolution })
-          }
-        >
-          {RESOLUTIONS.map((res) => (
-            <DropdownMenuRadioItem key={res.value} value={res.value}>
-              {res.label}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-          Image Count
-        </DropdownMenuLabel>
-        <DropdownMenuRadioGroup
-          value={String(settings.image_count)}
-          onValueChange={(value) =>
-            update_settings({ image_count: Number(value) as typeof settings.image_count })
-          }
-        >
-          {IMAGE_COUNTS.map((count) => (
-            <DropdownMenuRadioItem key={count} value={String(count)}>
-              {count} image{count > 1 ? "s" : ""}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <span className="flex-1">Image Count</span>
+            <span className="text-muted-foreground text-xs">{settings.image_count}</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuRadioGroup
+              value={String(settings.image_count)}
+              onValueChange={(value) =>
+                update_settings({ image_count: Number(value) as typeof settings.image_count })
+              }
+            >
+              {IMAGE_COUNTS.map((count) => (
+                <DropdownMenuRadioItem key={count} value={String(count)}>
+                  {count} image{count > 1 ? "s" : ""}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
 
         <DropdownMenuSeparator />
 
