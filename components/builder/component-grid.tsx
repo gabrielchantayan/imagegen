@@ -166,7 +166,7 @@ export const ComponentGrid = () => {
         <div className="flex-none p-4 pb-0">
           <div className="flex items-center gap-4 mb-4">
             <div className="relative flex-1 max-w-sm">
-              <Input placeholder="Search components..." disabled className="w-full" />
+              <Input placeholder="Search components..." disabled className="w-full" value={search} />
             </div>
           </div>
           <div className="h-px bg-border w-full" />
