@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Check, Pencil, Copy } from 'lucide-react';
-import type { Component } from '@/lib/types/database';
-import { cn } from '@/lib/utils';
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Check, Pencil, Copy } from "lucide-react";
+import type { Component } from "@/lib/types/database";
+import { cn } from "@/lib/utils";
 
 type ComponentCardProps = {
   component: Component;
@@ -25,7 +25,7 @@ export const ComponentCard = ({
   show_face_references = true,
   face_reference_paths,
   on_select,
-  on_edit
+  on_edit,
 }: ComponentCardProps) => {
   // Combine inline references and face references based on settings
   const all_reference_paths = [
@@ -39,22 +39,30 @@ export const ComponentCard = ({
     <Card
       className={cn(
         "group relative cursor-pointer transition-all duration-200 hover:shadow-md overflow-hidden w-full",
-        selected ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:border-primary/50"
+        selected
+          ? "border-primary bg-primary/5 ring-1 ring-primary"
+          : "hover:border-primary/50",
+        show_image ? "py-1.5" : "pl-2",
       )}
       onClick={on_select}
     >
-      <div className={cn("flex items-center gap-3 px-3 py-1.5", show_image && "pl-1.5")}>
+      <div
+        className={cn(
+          "flex items-center gap-3 px-3 py-0.5",
+          show_image && "pl-1.5",
+        )}
+      >
         {/* Reference image thumbnail */}
         {show_image && (
-          <div className="relative shrink-0 w-12 h-12 bg-muted/30 rounded-md overflow-hidden border">
+          <div className="overflow-hidden relative w-12 h-12 rounded-md border shrink-0 bg-muted/30">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={all_reference_paths[0]}
               alt=""
-              className="w-full h-full object-cover"
+              className="object-cover w-full h-full"
             />
             {all_reference_paths.length > 1 && (
-              <div className="absolute bottom-0 left-0 bg-black/60 text-white text-[10px] px-1 rounded-tr-md">
+              <div className="absolute bottom-0 left-0 px-1 text-white rounded-tr-md bg-black/60 text-[10px]">
                 +{all_reference_paths.length - 1}
               </div>
             )}
@@ -63,17 +71,19 @@ export const ComponentCard = ({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className={cn(
-              "text-base font-semibold leading-tight tracking-tight pr-6",
-              selected && "text-primary"
-            )}>
+          <div className="flex gap-2 justify-between items-start">
+            <h3
+              className={cn(
+                "text-base font-semibold leading-tight tracking-tight pr-6",
+                selected && "text-primary",
+              )}
+            >
               {component.name}
             </h3>
           </div>
 
           {component.description && (
-            <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground line-clamp-2">
               {component.description}
             </p>
           )}
@@ -83,21 +93,23 @@ export const ComponentCard = ({
       {/* Selection indicator */}
       {selected && (
         <div className="absolute top-0 right-0 p-0">
-          <div className="bg-primary text-primary-foreground rounded-bl-lg px-2 py-1 text-xs font-medium flex items-center justify-center min-w-[24px]">
+          <div className="flex justify-center items-center py-1 px-2 text-xs font-medium rounded-bl-lg bg-primary text-primary-foreground min-w-[24px]">
             {selection_order ?? <Check className="size-3" />}
           </div>
         </div>
       )}
 
       {/* Edit Action - Visible on hover */}
-      <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
+      <div className="flex absolute right-2 bottom-2 gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
         <Button
           variant="secondary"
           size="icon"
-          className="h-7 w-7 shadow-sm"
+          className="w-7 h-7 shadow-sm"
           onClick={(e) => {
             e.stopPropagation();
-            navigator.clipboard.writeText(JSON.stringify(component.data, null, 2));
+            navigator.clipboard.writeText(
+              JSON.stringify(component.data, null, 2),
+            );
           }}
           title="Copy JSON"
         >
@@ -105,10 +117,10 @@ export const ComponentCard = ({
           <span className="sr-only">Copy JSON</span>
         </Button>
         {on_edit && (
-           <Button
+          <Button
             variant="secondary"
             size="icon"
-            className="h-7 w-7 shadow-sm"
+            className="w-7 h-7 shadow-sm"
             onClick={(e) => {
               e.stopPropagation();
               on_edit();
