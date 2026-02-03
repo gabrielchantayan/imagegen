@@ -75,6 +75,12 @@ export const HistoryLayout = () => {
   // Handle item click
   const handle_item_click = useCallback(
     (item: GenerationWithFavorite, shift_key: boolean) => {
+      // Update focused index for keyboard navigation
+      const clicked_index = items.findIndex((i) => i.id === item.id);
+      if (clicked_index >= 0) {
+        set_focused_index(clicked_index);
+      }
+
       if (is_select_mode) {
         if (shift_key && use_history_store.getState().last_selected_id) {
           const all_ids = items.map((i) => i.id);
@@ -86,7 +92,7 @@ export const HistoryLayout = () => {
         set_detail_item(item);
       }
     },
-    [is_select_mode, items, select_range, toggle_selection, set_detail_item]
+    [is_select_mode, items, select_range, toggle_selection, set_detail_item, set_focused_index]
   );
 
   // Handle toggle favorite
@@ -174,7 +180,7 @@ export const HistoryLayout = () => {
         return;
       }
 
-      // Arrow keys - navigate grid
+      // Arrow keys - navigate grid and auto-select
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
         e.preventDefault();
         const columns = get_grid_columns();
@@ -186,6 +192,11 @@ export const HistoryLayout = () => {
         if (e.key === "ArrowRight") new_index = Math.min(items.length - 1, focused_index + 1);
 
         set_focused_index(new_index);
+
+        // Auto-select item in detail panel (unless in select mode)
+        if (!is_select_mode && new_index >= 0 && new_index < items.length) {
+          set_detail_item(items[new_index]);
+        }
         return;
       }
 

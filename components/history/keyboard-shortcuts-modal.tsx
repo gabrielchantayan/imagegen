@@ -21,8 +21,7 @@ type Shortcut = {
 };
 
 const NAVIGATION_SHORTCUTS: Shortcut[] = [
-  { key: "↑ ↓ ← →", description: "Navigate grid" },
-  { key: "Enter", description: "Open in detail panel" },
+  { key: "↑ ↓ ← →", description: "Navigate and select" },
 ];
 
 const SELECTION_SHORTCUTS: Shortcut[] = [
