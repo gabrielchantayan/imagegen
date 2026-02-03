@@ -11,6 +11,7 @@ type RawComponent = {
   description: string | null;
   data: string;
   thumbnail_path: string | null;
+  inline_references: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -19,6 +20,7 @@ const parse_component = (row: RawComponent): Component => {
   return {
     ...row,
     data: JSON.parse(row.data),
+    inline_references: row.inline_references ? JSON.parse(row.inline_references) : [],
   };
 };
 
@@ -85,6 +87,7 @@ export type UpdateComponentInput = {
   description?: string;
   data?: Record<string, unknown>;
   thumbnail_path?: string;
+  inline_references?: string[];
 };
 
 // Update component
@@ -98,6 +101,7 @@ export const update_component = (id: string, input: UpdateComponentInput): Compo
     description: 'description',
     data: { column: 'data', transform: (v) => JSON.stringify(v) },
     thumbnail_path: 'thumbnail_path',
+    inline_references: { column: 'inline_references', transform: (v) => JSON.stringify(v) },
   });
 
   if (sql_parts.length === 0) return existing;

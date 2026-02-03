@@ -12,6 +12,7 @@ export type Component = {
   description: string | null;
   data: Record<string, unknown>;
   thumbnail_path: string | null;
+  inline_references: string[];
   created_at: string;
   updated_at: string;
 };
@@ -43,6 +44,7 @@ export type Generation = {
   created_at: string;
   completed_at: string | null;
   reference_photo_ids: string[] | null;
+  inline_reference_paths: string[] | null;
   used_fallback: boolean;
   components_used: ComponentUsed[] | null;
 };
@@ -57,6 +59,7 @@ export type QueueItem = {
   started_at: string | null;
   completed_at: string | null;
   reference_photo_ids: string[] | null;
+  inline_reference_paths: string[] | null;
   google_search: boolean;
   safety_override: boolean;
 };

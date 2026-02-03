@@ -56,6 +56,7 @@ export type SubmitGenerationOptions = {
   aspect_ratio?: string;
   count?: number;
   reference_photo_ids?: string[];
+  inline_reference_paths?: string[];
   components_used?: ComponentUsedInput[];
   google_search?: boolean;
   safety_override?: boolean;
@@ -78,6 +79,7 @@ export const submit_generation = async (
       prompt_json,
       options,
       reference_photo_ids: options?.reference_photo_ids,
+      inline_reference_paths: options?.inline_reference_paths,
       components_used: options?.components_used,
       google_search: options?.google_search,
       safety_override: options?.safety_override,

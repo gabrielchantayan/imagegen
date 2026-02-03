@@ -14,6 +14,7 @@ import { ReferencePickerModal } from '@/components/references/reference-picker-m
 import { use_component_references } from '@/lib/hooks/use-component-references';
 import { ComponentEditorForm } from './component-editor-form';
 import { ComponentReferencesSection } from './component-references-section';
+import { ComponentInlineReferences } from './component-inline-references';
 import type { Component, Category } from '@/lib/types/database';
 
 const REFERENCE_CATEGORIES = ['characters', 'physical_traits'];
@@ -44,6 +45,7 @@ export const ComponentEditor = ({
   const [json_data, set_json_data] = useState('{}');
   const [json_error, set_json_error] = useState('');
   const [saving, set_saving] = useState(false);
+  const [inline_references, set_inline_references] = useState<string[]>([]);
 
   const category_id = component?.category_id ?? category?.id ?? '';
   const supports_references = REFERENCE_CATEGORIES.includes(category_id);
@@ -71,6 +73,7 @@ export const ComponentEditor = ({
       set_json_data(component ? JSON.stringify(component.data, null, 2) : '{}');
       set_json_error('');
       set_saving(false);
+      set_inline_references(component?.inline_references ?? []);
     }
   }, [open, component]);
 
@@ -156,6 +159,14 @@ export const ComponentEditor = ({
                 on_attach={() => set_picker_open(true)}
                 on_detach={remove_reference}
                 reference_saving={reference_saving}
+              />
+            )}
+            {is_editing && (
+              <ComponentInlineReferences
+                component_id={component?.id}
+                inline_references={inline_references}
+                on_change={set_inline_references}
+                on_error={set_json_error}
               />
             )}
           </ComponentEditorForm>

@@ -44,6 +44,40 @@ const collect_components_used = (
   return components;
 };
 
+// Helper to collect inline references from all selected components
+const collect_inline_references = (
+  subjects: { id: string; selections: Record<string, Component[]> }[],
+  shared_selections: Record<string, Component[]>
+): string[] => {
+  const paths = new Set<string>();
+
+  // Collect from all subjects
+  for (const subject of subjects) {
+    for (const category_components of Object.values(subject.selections)) {
+      for (const component of category_components) {
+        if (component.inline_references) {
+          for (const path of component.inline_references) {
+            paths.add(path);
+          }
+        }
+      }
+    }
+  }
+
+  // Collect from shared selections
+  for (const category_components of Object.values(shared_selections)) {
+    for (const component of category_components) {
+      if (component.inline_references) {
+        for (const path of component.inline_references) {
+          paths.add(path);
+        }
+      }
+    }
+  }
+
+  return Array.from(paths);
+};
+
 export const BuilderToolbar = () => {
   const [save_modal_open, set_save_modal_open] = useState(false);
 
@@ -105,11 +139,15 @@ export const BuilderToolbar = () => {
     // Collect all selected components for tagging
     const components_used = collect_components_used(subjects, shared_selections);
 
+    // Collect inline references from selected components
+    const inline_reference_paths = collect_inline_references(subjects, shared_selections);
+
     try {
       const result = await submit_generation(composed_prompt, {
         aspect_ratio: settings.aspect_ratio,
         count: settings.image_count,
         reference_photo_ids: selected_reference_ids.length > 0 ? selected_reference_ids : undefined,
+        inline_reference_paths: inline_reference_paths.length > 0 ? inline_reference_paths : undefined,
         components_used: components_used.length > 0 ? components_used : undefined,
         google_search: settings.google_search,
         safety_override: settings.safety_override,

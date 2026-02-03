@@ -16,6 +16,7 @@ type RawGeneration = {
   created_at: string;
   completed_at: string | null;
   reference_photo_ids: string | null;
+  inline_reference_paths: string | null;
   used_fallback: number;
   components_used: string | null;
 };
@@ -25,6 +26,7 @@ const parse_generation = (row: RawGeneration): Generation => {
     ...row,
     prompt_json: JSON.parse(row.prompt_json),
     reference_photo_ids: row.reference_photo_ids ? JSON.parse(row.reference_photo_ids) : null,
+    inline_reference_paths: row.inline_reference_paths ? JSON.parse(row.inline_reference_paths) : null,
     used_fallback: row.used_fallback === 1,
     components_used: row.components_used ? JSON.parse(row.components_used) : null,
   };
@@ -33,20 +35,22 @@ const parse_generation = (row: RawGeneration): Generation => {
 export const create_generation = (
   prompt_json: Record<string, unknown>,
   reference_photo_ids?: string[],
-  components_used?: ComponentUsed[]
+  components_used?: ComponentUsed[],
+  inline_reference_paths?: string[]
 ): Generation => {
   const db = get_db();
   const id = generate_id();
   const timestamp = now();
 
   db.prepare(`
-    INSERT INTO generations (id, prompt_json, status, created_at, reference_photo_ids, components_used)
-    VALUES (?, ?, 'pending', ?, ?, ?)
+    INSERT INTO generations (id, prompt_json, status, created_at, reference_photo_ids, inline_reference_paths, components_used)
+    VALUES (?, ?, 'pending', ?, ?, ?, ?)
   `).run(
     id,
     JSON.stringify(prompt_json),
     timestamp,
     reference_photo_ids && reference_photo_ids.length > 0 ? JSON.stringify(reference_photo_ids) : null,
+    inline_reference_paths && inline_reference_paths.length > 0 ? JSON.stringify(inline_reference_paths) : null,
     components_used && components_used.length > 0 ? JSON.stringify(components_used) : null
   );
 

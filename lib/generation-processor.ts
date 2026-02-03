@@ -30,6 +30,37 @@ const load_reference_images = async (reference_photo_ids: string[]): Promise<Ref
   return images;
 };
 
+const get_mime_type_from_path = (image_path: string): string => {
+  const ext = path.extname(image_path).toLowerCase();
+  const mime_map: Record<string, string> = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.webp': 'image/webp',
+    '.gif': 'image/gif',
+  };
+  return mime_map[ext] || 'image/png';
+};
+
+const load_inline_references = async (inline_reference_paths: string[]): Promise<ReferenceImage[]> => {
+  const images: ReferenceImage[] = [];
+
+  for (const image_path of inline_reference_paths) {
+    try {
+      const file_path = path.join(process.cwd(), "public", image_path);
+      const data = await readFile(file_path);
+      images.push({
+        data,
+        mime_type: get_mime_type_from_path(image_path),
+      });
+    } catch {
+      console.error(`Failed to load inline reference image: ${image_path}`);
+    }
+  }
+
+  return images;
+};
+
 export const process_queue = async (): Promise<void> => {
   if (processing) return;
   processing = true;
@@ -46,10 +77,16 @@ export const process_queue = async (): Promise<void> => {
       }
 
       try {
-        // Load reference images if any
+        // Load reference images if any (face references)
         let reference_images: ReferenceImage[] = [];
         if (item.reference_photo_ids && item.reference_photo_ids.length > 0) {
           reference_images = await load_reference_images(item.reference_photo_ids);
+        }
+
+        // Load inline reference images from components
+        if (item.inline_reference_paths && item.inline_reference_paths.length > 0) {
+          const inline_refs = await load_inline_references(item.inline_reference_paths);
+          reference_images = [...reference_images, ...inline_refs];
         }
 
         let result = await generate_image(item.prompt_json, {
