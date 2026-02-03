@@ -134,20 +134,42 @@ export const BuilderToolbar = () => {
 
   const generation_id_ref = useRef<string | null>(null);
   const polling_ref = useRef<NodeJS.Timeout | null>(null);
+  const polling_start_ref = useRef<number | null>(null);
+  const error_count_ref = useRef<number>(0);
+
+  // Max polling duration: 5 minutes
+  const MAX_POLLING_DURATION_MS = 5 * 60 * 1000;
+  // Max consecutive errors before giving up
+  const MAX_CONSECUTIVE_ERRORS = 5;
 
   const stop_polling = useCallback(() => {
     if (polling_ref.current) {
       clearInterval(polling_ref.current);
       polling_ref.current = null;
     }
+    polling_start_ref.current = null;
+    error_count_ref.current = 0;
   }, []);
 
   const poll_status = useCallback(async () => {
     if (!generation_id_ref.current) return;
 
+    // Check for timeout
+    if (polling_start_ref.current && Date.now() - polling_start_ref.current > MAX_POLLING_DURATION_MS) {
+      console.error("Generation polling timed out");
+      set_generation_status("failed");
+      set_generation_error("Generation timed out. Please try again.");
+      set_queue_position(null);
+      stop_polling();
+      return;
+    }
+
     try {
       const res = await fetch(`/api/generate/${generation_id_ref.current}/status`);
       const data = await res.json();
+
+      // Reset error count on successful fetch
+      error_count_ref.current = 0;
 
       if (data.status === "generating") {
         set_generation_status("generating");
@@ -165,6 +187,15 @@ export const BuilderToolbar = () => {
       }
     } catch (error) {
       console.error("Failed to poll status:", error);
+      error_count_ref.current += 1;
+
+      // Give up after too many consecutive errors
+      if (error_count_ref.current >= MAX_CONSECUTIVE_ERRORS) {
+        set_generation_status("failed");
+        set_generation_error("Lost connection to server. Please check your generation in History.");
+        set_queue_position(null);
+        stop_polling();
+      }
     }
   }, [set_generation_status, set_last_generated_image, set_generation_error, set_queue_position, stop_polling]);
 
@@ -194,6 +225,8 @@ export const BuilderToolbar = () => {
       generation_id_ref.current = result.generation_id;
       set_queue_position(result.position);
 
+      polling_start_ref.current = Date.now();
+      error_count_ref.current = 0;
       polling_ref.current = setInterval(poll_status, 2000);
       poll_status();
     } catch (error) {
@@ -221,13 +254,13 @@ export const BuilderToolbar = () => {
   return (
     <div className="h-14 border-b bg-background/80 backdrop-blur-md flex items-center justify-between px-4 sticky top-0 z-50">
       <div className="flex items-center gap-2">
-        <Button 
-          onClick={handle_generate} 
-          disabled={!composed_prompt || is_generating}
+        <Button
+          onClick={handle_generate}
+          disabled={!composed_prompt}
           className="bg-primary hover:bg-primary/90 shadow-sm transition-all"
         >
           <Sparkles className="size-4 mr-2" />
-          {is_generating ? "Generating..." : "Generate"}
+          {is_generating ? "Add to Queue" : "Generate"}
         </Button>
 
         <DropdownMenu>
