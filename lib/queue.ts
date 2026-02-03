@@ -13,6 +13,7 @@ type RawQueueItem = {
   started_at: string | null;
   completed_at: string | null;
   reference_photo_ids: string | null;
+  google_search: number;
 };
 
 const parse_queue_item = (row: RawQueueItem): QueueItem & { generation_id: string | null } => {
@@ -21,27 +22,34 @@ const parse_queue_item = (row: RawQueueItem): QueueItem & { generation_id: strin
     prompt_json: JSON.parse(row.prompt_json),
     generation_id: row.generation_id,
     reference_photo_ids: row.reference_photo_ids ? JSON.parse(row.reference_photo_ids) : null,
+    google_search: row.google_search === 1,
   };
+};
+
+type EnqueueOptions = {
+  reference_photo_ids?: string[];
+  google_search?: boolean;
 };
 
 export const enqueue = (
   prompt_json: Record<string, unknown>,
   generation_id: string,
-  reference_photo_ids?: string[]
+  options?: EnqueueOptions
 ): QueueItem & { generation_id: string } => {
   const db = get_db();
   const id = generate_id();
   const timestamp = now();
 
   db.prepare(`
-    INSERT INTO generation_queue (id, prompt_json, generation_id, status, created_at, reference_photo_ids)
-    VALUES (?, ?, ?, 'queued', ?, ?)
+    INSERT INTO generation_queue (id, prompt_json, generation_id, status, created_at, reference_photo_ids, google_search)
+    VALUES (?, ?, ?, 'queued', ?, ?, ?)
   `).run(
     id,
     JSON.stringify(prompt_json),
     generation_id,
     timestamp,
-    reference_photo_ids && reference_photo_ids.length > 0 ? JSON.stringify(reference_photo_ids) : null
+    options?.reference_photo_ids && options.reference_photo_ids.length > 0 ? JSON.stringify(options.reference_photo_ids) : null,
+    options?.google_search ? 1 : 0
   );
 
   return get_queue_item(id)! as QueueItem & { generation_id: string };

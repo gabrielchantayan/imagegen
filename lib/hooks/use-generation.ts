@@ -57,6 +57,7 @@ export type SubmitGenerationOptions = {
   count?: number;
   reference_photo_ids?: string[];
   components_used?: ComponentUsedInput[];
+  google_search?: boolean;
 };
 
 export type SubmitGenerationResponse = {
@@ -77,6 +78,7 @@ export const submit_generation = async (
       options,
       reference_photo_ids: options?.reference_photo_ids,
       components_used: options?.components_used,
+      google_search: options?.google_search,
     }),
   });
 

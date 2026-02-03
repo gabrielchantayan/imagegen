@@ -57,6 +57,7 @@ export type QueueItem = {
   started_at: string | null;
   completed_at: string | null;
   reference_photo_ids: string[] | null;
+  google_search: boolean;
 };
 
 export type SessionState = {

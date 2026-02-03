@@ -56,6 +56,11 @@ export const generate_image = async (
       generation_config.imageConfig = image_config;
     }
 
+    // Add Google Search grounding tool if enabled
+    if (options.use_google_search) {
+      generation_config.tools = [{ googleSearch: {} }];
+    }
+
     const prompt_text = format_prompt_for_gemini(prompt);
 
     // Build content parts: reference images first, then text prompt
