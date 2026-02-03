@@ -126,6 +126,7 @@ export const process_queue = async (): Promise<void> => {
               // Save the pre-swap image before using the swapped one
               pre_swap_image_path = await save_image(base_result.images[0], base_result.mime_type!);
               console.log("[generation-processor] Face swap succeeded, saved pre-swap image:", pre_swap_image_path);
+              console.log(`[generation-processor] Base image size: ${base_result.images[0].length}, Swapped image size: ${swap_result.image.length}`);
 
               result = {
                 success: true,
