@@ -11,6 +11,7 @@ type ComponentCardProps = {
   selected?: boolean;
   selection_order?: number;
   show_inline_references?: boolean;
+  show_face_references?: boolean;
   face_reference_paths?: string[];
   on_select?: () => void;
   on_edit?: () => void;
@@ -21,17 +22,18 @@ export const ComponentCard = ({
   selected,
   selection_order,
   show_inline_references = true,
+  show_face_references = true,
   face_reference_paths,
   on_select,
   on_edit
 }: ComponentCardProps) => {
-  // Combine inline references and face references
+  // Combine inline references and face references based on settings
   const all_reference_paths = [
-    ...(component.inline_references ?? []),
-    ...(face_reference_paths ?? []),
+    ...(show_inline_references ? (component.inline_references ?? []) : []),
+    ...(show_face_references ? (face_reference_paths ?? []) : []),
   ];
   const has_references = all_reference_paths.length > 0;
-  const show_image = show_inline_references && has_references;
+  const show_image = has_references;
 
   return (
     <Card

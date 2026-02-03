@@ -18,6 +18,7 @@ type GenerationSettings = {
   safety_override: boolean;
   google_search: boolean;
   show_inline_references: boolean;
+  show_face_references: boolean;
 };
 
 type ConflictInfo = {
@@ -103,6 +104,7 @@ const DEFAULT_SETTINGS: GenerationSettings = {
   safety_override: false,
   google_search: false,
   show_inline_references: true,
+  show_face_references: true,
 };
 
 // Categories that contribute to body/subject

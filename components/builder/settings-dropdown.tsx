@@ -122,7 +122,13 @@ export const SettingsDropdown = () => {
           checked={settings.show_inline_references}
           onCheckedChange={(checked) => update_settings({ show_inline_references: checked })}
         >
-          Show Reference Images
+          Show Inline References
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuCheckboxItem
+          checked={settings.show_face_references}
+          onCheckedChange={(checked) => update_settings({ show_face_references: checked })}
+        >
+          Show Face References
         </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>
