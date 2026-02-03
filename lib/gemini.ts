@@ -89,7 +89,18 @@ export const generate_image = async (
 
       // Add face reference instruction BEFORE the main prompt
       const ref_count = options.reference_images.length;
-      const face_instruction = `The ${ref_count === 1 ? "image above is a" : "images above are"} facial reference${ref_count === 1 ? "" : "s"}. Use ${ref_count === 1 ? "this face" : "these faces"} as the identity for the subject in the generated image. The generated person should have the exact facial features, face shape, and likeness from the reference ${ref_count === 1 ? "photo" : "photos"}. Preserve all other aspects (skin color, body, pose, wardrobe, background) from the prompt below.
+      const face_instruction = `CHARACTER REFERENCE: The ${ref_count === 1 ? "image above shows the specific character" : "images above show the specific characters"} whose face and identity MUST appear in the generated image.
+
+CRITICAL REQUIREMENTS:
+- The generated subject must have the EXACT SAME FACE as the reference ${ref_count === 1 ? "image" : "images"}
+- Copy these exact features: eye shape, eye color, nose shape, lip shape, jawline, cheekbone structure, eyebrow shape, face proportions, hairline shape, ear shape
+- This is the same character - their unique facial geometry and distinctive features must be identical
+- Treat this as depicting the same character in a new scene
+
+DO NOT: Create a generic face, average out features, or generate someone who merely looks "similar"
+DO: Generate an image of the EXACT SAME CHARACTER with identical facial features
+
+The body, pose, clothing, scene, and all other visual elements come ONLY from the prompt below. Only the FACE and IDENTITY come from the reference.
 
 `;
       parts.push({ text: face_instruction + prompt_text });
@@ -182,16 +193,31 @@ export const face_swap_edit = async (
         },
       },
       {
-        text: `Using the first image as a face reference, seamlessly replace the face of the person in the second image. The replacement should:
+        text: `IDENTITY TRANSFER TASK: Replace the face in Image 2 with the face from Image 1.
 
-- Match the facial structure, features, and likeness from the reference photo
-- Preserve the skin tone from the second image (it may be tanned, have body paint, or other intentional changes)
-- Preserve the exact pose, body position, expression, and head angle from the second image
-- Maintain all lighting, shadows, and color grading from the second image
-- Keep all clothing, accessories, background, and composition unchanged
-- Blend naturally at face boundaries with no visible seams or artifacts
+Image 1 (FIRST IMAGE) = Source face. This is the character whose face must appear in the output.
+Image 2 (SECOND IMAGE) = Target scene. Keep everything EXCEPT the face.
 
-Only the facial features should change. Everything else must remain identical to the second image.`,
+WHAT TO TRANSFER FROM IMAGE 1:
+- The complete facial identity: eye shape, eye color, nose bridge and tip shape, lip shape and fullness, jawline contour, cheekbone structure, eyebrow shape and position, forehead shape, chin shape, ear shape
+- The output must show the EXACT SAME CHARACTER as Image 1
+- Copy the unique geometry that makes this face distinct from all other faces
+
+WHAT TO PRESERVE FROM IMAGE 2:
+- Exact head angle, tilt, and rotation
+- Expression and emotion (adapt the transferred face to match)
+- Skin tone, tan, makeup, or body paint
+- Hair (unless face reference shows different hair at the boundary)
+- All lighting, shadows, highlights, and color grading
+- Neck, body, pose, clothing, accessories, background - EVERYTHING except the face itself
+
+QUALITY REQUIREMENTS:
+- Seamless blending at face boundaries - no visible edges or color mismatches
+- Consistent lighting direction on the transferred face
+- Natural skin texture continuation
+- The result should look like the Image 1 character was the original subject of Image 2
+
+OUTPUT: A single image showing the character from Image 1 in the scene from Image 2.`,
       },
     ];
 
