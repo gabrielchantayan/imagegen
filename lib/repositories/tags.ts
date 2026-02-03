@@ -1,4 +1,5 @@
 import { get_db } from "../db";
+import { build_sql_placeholders } from "../db-query-helpers";
 import type { ComponentUsed } from "../types/database";
 
 export type GenerationTag = {
@@ -14,16 +15,17 @@ export type TagWithCount = {
   count: number;
 };
 
+// Normalize a tag value for consistent storage
+const normalize = (value: string): string => {
+  return value.toLowerCase().replace(/\s+/g, "-").slice(0, 50);
+};
+
 // Extract tags from prompt JSON
 // Format: category:value (e.g., "char:elena", "scene:beach")
 export const extract_tags_from_prompt = (
   prompt_json: Record<string, unknown>
 ): { tag: string; category: string }[] => {
   const tags: { tag: string; category: string }[] = [];
-
-  const normalize = (value: string): string => {
-    return value.toLowerCase().replace(/\s+/g, "-").slice(0, 50);
-  };
 
   // Handle component-based structure (has "name" property)
   const component_mappings: Record<string, string> = {
@@ -131,10 +133,6 @@ export const extract_tags_from_components = (
   components: ComponentUsed[]
 ): { tag: string; category: string }[] => {
   const tags: { tag: string; category: string }[] = [];
-
-  const normalize = (value: string): string => {
-    return value.toLowerCase().replace(/\s+/g, "-").slice(0, 50);
-  };
 
   for (const component of components) {
     const prefix = COMPONENT_CATEGORY_PREFIXES[component.category_id] || component.category_id;
@@ -257,7 +255,7 @@ export const search_generations_by_tags = (tags: string[]): string[] => {
   if (tags.length === 0) return [];
 
   const db = get_db();
-  const placeholders = tags.map(() => "?").join(", ");
+  const placeholders = build_sql_placeholders(tags.length);
 
   // Find generations that have ALL specified tags
   const rows = db

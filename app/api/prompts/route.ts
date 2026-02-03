@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { with_auth } from "@/lib/api-auth";
+import { json_response, error_response } from "@/lib/api-helpers";
 import { list_prompts, create_prompt } from "@/lib/repositories/prompts";
 
 export const GET = async (request: Request) => {
@@ -9,7 +9,7 @@ export const GET = async (request: Request) => {
 
     const prompts = list_prompts({ search });
 
-    return NextResponse.json({ prompts });
+    return json_response({ prompts });
   });
 };
 
@@ -18,17 +18,11 @@ export const POST = async (request: Request) => {
     const body = await request.json();
 
     if (!body.name || !body.prompt_json) {
-      return NextResponse.json(
-        { error: "name and prompt_json are required" },
-        { status: 400 }
-      );
+      return error_response("name and prompt_json are required");
     }
 
     if (typeof body.prompt_json !== "object") {
-      return NextResponse.json(
-        { error: "prompt_json must be an object" },
-        { status: 400 }
-      );
+      return error_response("prompt_json must be an object");
     }
 
     const prompt = create_prompt({
@@ -37,6 +31,6 @@ export const POST = async (request: Request) => {
       prompt_json: body.prompt_json,
     });
 
-    return NextResponse.json(prompt, { status: 201 });
+    return json_response(prompt, 201);
   });
 };

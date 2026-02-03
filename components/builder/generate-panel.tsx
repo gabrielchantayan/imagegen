@@ -12,7 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Sparkles, Save, Copy, X } from "lucide-react";
+import { Loader2, Sparkles, Save, Copy } from "lucide-react";
+import { LoadingState } from "@/components/shared/loading-state";
+import { ErrorState } from "@/components/shared/error-state";
 import {
   use_components,
   create_component_api,
@@ -194,11 +196,8 @@ export const GeneratePanel = () => {
 
         <div className="flex flex-col flex-1 min-h-0 bg-card rounded-xl border shadow-sm p-1">
           {error ? (
-             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              <div className="size-12 rounded-full bg-destructive/10 flex items-center justify-center mb-3">
-                <X className="size-6 text-destructive" />
-              </div>
-              <p className="text-destructive font-medium">{error}</p>
+            <div className="flex-1 flex items-center justify-center">
+              <ErrorState message={error} />
             </div>
           ) : result ? (
             <>
@@ -253,11 +252,7 @@ export const GeneratePanel = () => {
           ) : (
              <div className="flex flex-1 justify-center items-center text-muted-foreground bg-muted/5 rounded-lg m-1 border border-dashed border-muted-foreground/10">
               {generating ? (
-                <div className="text-center">
-                  <Loader2 className="mx-auto mb-4 animate-spin size-10 text-primary" />
-                  <p className="font-medium text-foreground">Generating JSON...</p>
-                   <p className="text-sm opacity-70 mt-1">Interpreting your description</p>
-                </div>
+                <LoadingState message="Generating JSON..." size="lg" />
               ) : (
                 <div className="text-center max-w-[240px]">
                    <p className="text-sm">Select a category and describe your idea to generate a starting point</p>

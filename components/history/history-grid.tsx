@@ -2,7 +2,11 @@
 
 import { useEffect, useRef } from "react";
 
+import { ImageIcon } from "lucide-react";
+
 import { HistoryCard } from "./history-card";
+import { EmptyState } from "@/components/shared/empty-state";
+
 import type { GenerationWithFavorite } from "@/lib/types/database";
 
 type HistoryGridProps = {
@@ -14,7 +18,7 @@ type HistoryGridProps = {
   on_item_click: (item: GenerationWithFavorite, shift_key: boolean) => void;
   on_toggle_favorite: (id: string) => void;
   is_select_mode: boolean;
-  selected_ids: Set<string>;
+  selected_ids: string[];
   focused_index: number;
 };
 
@@ -86,9 +90,11 @@ export const HistoryGrid = ({
   if (items.length === 0) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="text-center py-12 text-muted-foreground">
-          No generations found. Create your first image to see it here.
-        </div>
+        <EmptyState
+          icon={ImageIcon}
+          heading="No generations found"
+          description="Create your first image to see it here."
+        />
       </div>
     );
   }
@@ -103,7 +109,7 @@ export const HistoryGrid = ({
               on_click={(e) => on_item_click(item, e.shiftKey)}
               on_toggle_favorite={() => on_toggle_favorite(item.id)}
               is_select_mode={is_select_mode}
-              is_selected={selected_ids.has(item.id)}
+              is_selected={selected_ids.includes(item.id)}
               is_focused={focused_index === index}
             />
           </div>

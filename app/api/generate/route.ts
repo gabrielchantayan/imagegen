@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { with_auth } from "@/lib/api-auth";
+import { json_response, error_response } from "@/lib/api-helpers";
 import { enqueue, get_queue_status } from "@/lib/queue";
 import { create_generation } from "@/lib/repositories/generations";
 import { process_queue } from "@/lib/generation-processor";
@@ -10,7 +10,7 @@ export const POST = async (request: Request) => {
     const body = await request.json();
 
     if (!body.prompt_json || typeof body.prompt_json !== "object") {
-      return NextResponse.json({ error: "prompt_json is required" }, { status: 400 });
+      return error_response("prompt_json is required");
     }
 
     const count = Math.min(Math.max(1, Number(body.options?.count || 1)), 4);
@@ -31,12 +31,12 @@ export const POST = async (request: Request) => {
 
     // Trigger processing
     process_queue().catch(console.error);
-    
+
     // Return the first item's details for immediate feedback, but include all IDs
     const first = results[0];
     const { position } = get_queue_status(first.queue_id);
 
-    return NextResponse.json(
+    return json_response(
       {
         queue_id: first.queue_id,
         generation_id: first.generation_id,
@@ -44,7 +44,7 @@ export const POST = async (request: Request) => {
         status: first.status,
         batch: results, // Return all items for client handling
       },
-      { status: 202 }
+      202
     );
   });
 };
@@ -52,6 +52,6 @@ export const POST = async (request: Request) => {
 export const GET = async () => {
   return with_auth(async () => {
     const status = get_queue_status();
-    return NextResponse.json(status);
+    return json_response(status);
   });
 };

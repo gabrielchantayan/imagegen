@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 
 import { with_auth } from "@/lib/api-auth";
+import { json_response, error_response } from "@/lib/api-helpers";
 import { generate_id } from "@/lib/db";
 import {
   list_references,
@@ -23,7 +23,7 @@ export const GET = async () => {
       defaults_object[component_id] = ref_ids;
     }
 
-    return NextResponse.json({
+    return json_response({
       references,
       component_defaults: defaults_object,
     });
@@ -37,20 +37,17 @@ export const POST = async (request: Request) => {
     const name = form_data.get("name") as string | null;
 
     if (!file) {
-      return NextResponse.json({ error: "file is required" }, { status: 400 });
+      return error_response("file is required");
     }
 
     if (!name || name.trim() === "") {
-      return NextResponse.json({ error: "name is required" }, { status: 400 });
+      return error_response("name is required");
     }
 
     // Validate file type
     const valid_types = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     if (!valid_types.includes(file.type)) {
-      return NextResponse.json(
-        { error: "Invalid file type. Allowed: JPEG, PNG, WebP, GIF" },
-        { status: 400 }
-      );
+      return error_response("Invalid file type. Allowed: JPEG, PNG, WebP, GIF");
     }
 
     // Create references directory if it doesn't exist
@@ -72,6 +69,6 @@ export const POST = async (request: Request) => {
       mime_type: file.type,
     });
 
-    return NextResponse.json(reference, { status: 201 });
+    return json_response(reference, 201);
   });
 };

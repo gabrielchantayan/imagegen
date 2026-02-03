@@ -20,7 +20,8 @@ import {
 } from "@/lib/hooks/use-components";
 import { use_builder_store, SHARED_CATEGORIES } from "@/lib/stores/builder-store";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
-import { Loader2, Plus, ScanFace, X } from "lucide-react";
+import { Loader2, Plus, ScanFace, Search, X } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 
 import type { Component } from "@/lib/types/database";
 
@@ -230,34 +231,26 @@ export const ComponentGrid = () => {
         </ResponsiveMasonry>
 
         {filtered_components.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground text-center animate-in fade-in duration-300">
-            <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
-               {search ? <Loader2 className="size-8" /> : <Plus className="size-8" />}
-            </div>
-            <h3 className="font-semibold text-lg mb-1">
-              {search ? "No matches found" : "No components yet"}
-            </h3>
-            <p className="max-w-xs mx-auto mb-6">
-              {search 
-                ? `We couldn't find any components matching "${search}"` 
-                : "Create your first component to get started with this category."}
-            </p>
-            {search ? (
-              <Button variant="outline" onClick={() => set_search("")}>
-                Clear Search
-              </Button>
-            ) : (
-              <Button
-                onClick={() => {
-                  set_editing_component(null);
-                  set_editor_open(true);
-                }}
-              >
-                <Plus className="size-4 mr-2" />
-                Create Component
-              </Button>
-            )}
-          </div>
+          <EmptyState
+            icon={search ? Search : Plus}
+            heading={search ? "No matches found" : "No components yet"}
+            description={
+              search
+                ? `We couldn't find any components matching "${search}"`
+                : "Create your first component to get started with this category."
+            }
+            action={
+              search
+                ? { label: "Clear Search", on_click: () => set_search("") }
+                : {
+                    label: "Create Component",
+                    on_click: () => {
+                      set_editing_component(null);
+                      set_editor_open(true);
+                    },
+                  }
+            }
+          />
         )}
       </div>
 

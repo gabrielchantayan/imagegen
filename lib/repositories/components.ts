@@ -1,7 +1,6 @@
 import { get_db, generate_id } from '../db';
-
-type BindValue = string | number | bigint | Buffer | null;
 import { now } from '../db-helpers';
+import { build_update_query } from '../db-query-helpers';
 import type { Component, Category } from '../types/database';
 
 // Internal raw type for DB rows (data is stored as JSON string)
@@ -94,33 +93,19 @@ export const update_component = (id: string, input: UpdateComponentInput): Compo
   const existing = get_component(id);
   if (!existing) return null;
 
-  const updates: string[] = [];
-  const values: BindValue[] = [];
+  const { sql_parts, values } = build_update_query(input, {
+    name: 'name',
+    description: 'description',
+    data: { column: 'data', transform: (v) => JSON.stringify(v) },
+    thumbnail_path: 'thumbnail_path',
+  });
 
-  if (input.name !== undefined) {
-    updates.push('name = ?');
-    values.push(input.name);
-  }
-  if (input.description !== undefined) {
-    updates.push('description = ?');
-    values.push(input.description);
-  }
-  if (input.data !== undefined) {
-    updates.push('data = ?');
-    values.push(JSON.stringify(input.data));
-  }
-  if (input.thumbnail_path !== undefined) {
-    updates.push('thumbnail_path = ?');
-    values.push(input.thumbnail_path);
-  }
+  if (sql_parts.length === 0) return existing;
 
-  if (updates.length === 0) return existing;
-
-  updates.push('updated_at = ?');
+  sql_parts.push('updated_at = ?');
   values.push(now());
-  values.push(id);
 
-  db.prepare(`UPDATE components SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+  db.prepare(`UPDATE components SET ${sql_parts.join(', ')} WHERE id = ?`).run(...values, id);
 
   return get_component(id);
 };

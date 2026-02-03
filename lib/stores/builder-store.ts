@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useShallow } from "zustand/react/shallow";
 
 import type { Component } from "@/lib/types/database";
 
@@ -875,3 +876,84 @@ export type {
 
 // Export constants
 export { SHARED_CATEGORIES };
+
+// Memoized selectors
+export const use_builder_selections = () =>
+  use_builder_store(
+    useShallow((s) => ({
+      subjects: s.subjects,
+      active_subject_id: s.active_subject_id,
+      shared_selections: s.shared_selections,
+      active_category: s.active_category,
+    }))
+  );
+
+export const use_builder_actions = () =>
+  use_builder_store(
+    useShallow((s) => ({
+      select_component: s.select_component,
+      deselect_component: s.deselect_component,
+      clear_category: s.clear_category,
+      set_active_category: s.set_active_category,
+      add_subject: s.add_subject,
+      remove_subject: s.remove_subject,
+      set_active_subject: s.set_active_subject,
+      clear_builder: s.clear_builder,
+    }))
+  );
+
+export const use_builder_generation_state = () =>
+  use_builder_store(
+    useShallow((s) => ({
+      composed_prompt: s.composed_prompt,
+      settings: s.settings,
+      generation_status: s.generation_status,
+      generation_error: s.generation_error,
+      queue_position: s.queue_position,
+      last_generated_image: s.last_generated_image,
+    }))
+  );
+
+export const use_builder_generation_actions = () =>
+  use_builder_store(
+    useShallow((s) => ({
+      update_settings: s.update_settings,
+      set_generation_status: s.set_generation_status,
+      set_last_generated_image: s.set_last_generated_image,
+      set_queue_position: s.set_queue_position,
+      set_generation_error: s.set_generation_error,
+    }))
+  );
+
+export const use_builder_references = () =>
+  use_builder_store(
+    useShallow((s) => ({
+      selected_reference_ids: s.selected_reference_ids,
+    }))
+  );
+
+export const use_builder_reference_actions = () =>
+  use_builder_store(
+    useShallow((s) => ({
+      select_reference: s.select_reference,
+      deselect_reference: s.deselect_reference,
+      clear_references: s.clear_references,
+      set_references: s.set_references,
+      add_references: s.add_references,
+    }))
+  );
+
+export const use_builder_conflicts = () =>
+  use_builder_store(
+    useShallow((s) => ({
+      conflicts: s.conflicts,
+      conflict_resolutions: s.conflict_resolutions,
+    }))
+  );
+
+export const use_builder_conflict_actions = () =>
+  use_builder_store(
+    useShallow((s) => ({
+      set_conflict_resolution: s.set_conflict_resolution,
+    }))
+  );

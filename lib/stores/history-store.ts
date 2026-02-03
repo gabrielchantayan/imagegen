@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 
 import type { GenerationWithFavorite } from "@/lib/types/database";
 
@@ -24,7 +25,7 @@ type DetailPanelState =
 type HistoryState = {
   // Selection mode
   is_select_mode: boolean;
-  selected_ids: Set<string>;
+  selected_ids: string[];
   last_selected_id: string | null; // For shift+click range select
 
   // Keyboard navigation
@@ -99,7 +100,7 @@ const DEFAULT_FILTERS: FilterState = {
 export const use_history_store = create<HistoryState>()((set, get) => ({
   // Initial state
   is_select_mode: false,
-  selected_ids: new Set(),
+  selected_ids: [],
   last_selected_id: null,
 
   focused_id: null,
@@ -122,7 +123,7 @@ export const use_history_store = create<HistoryState>()((set, get) => ({
       // Exiting select mode - clear selection
       set({
         is_select_mode: false,
-        selected_ids: new Set(),
+        selected_ids: [],
         last_selected_id: null,
         detail_panel: { mode: "empty" },
       });
@@ -134,7 +135,7 @@ export const use_history_store = create<HistoryState>()((set, get) => ({
   exit_select_mode: () => {
     set({
       is_select_mode: false,
-      selected_ids: new Set(),
+      selected_ids: [],
       last_selected_id: null,
       detail_panel: { mode: "empty" },
     });
@@ -142,26 +143,26 @@ export const use_history_store = create<HistoryState>()((set, get) => ({
 
   select_item: (id) => {
     set((state) => {
-      const new_selected = new Set(state.selected_ids);
-      new_selected.add(id);
+      // Only add if not already selected (prevent duplicates)
+      if (state.selected_ids.includes(id)) {
+        return { last_selected_id: id };
+      }
       return {
-        selected_ids: new_selected,
+        selected_ids: [...state.selected_ids, id],
         last_selected_id: id,
       };
     });
   },
 
   deselect_item: (id) => {
-    set((state) => {
-      const new_selected = new Set(state.selected_ids);
-      new_selected.delete(id);
-      return { selected_ids: new_selected };
-    });
+    set((state) => ({
+      selected_ids: state.selected_ids.filter((selected_id) => selected_id !== id),
+    }));
   },
 
   toggle_selection: (id) => {
     const state = get();
-    if (state.selected_ids.has(id)) {
+    if (state.selected_ids.includes(id)) {
       get().deselect_item(id);
     } else {
       get().select_item(id);
@@ -178,9 +179,13 @@ export const use_history_store = create<HistoryState>()((set, get) => ({
     const end = Math.max(from_index, to_index);
 
     set((state) => {
-      const new_selected = new Set(state.selected_ids);
-      for (let i = start; i <= end; i++) {
-        new_selected.add(all_ids[i]);
+      const ids_to_add = all_ids.slice(start, end + 1);
+      // Merge existing selections with new range, avoiding duplicates
+      const new_selected = [...state.selected_ids];
+      for (const id of ids_to_add) {
+        if (!new_selected.includes(id)) {
+          new_selected.push(id);
+        }
       }
       return {
         selected_ids: new_selected,
@@ -190,12 +195,12 @@ export const use_history_store = create<HistoryState>()((set, get) => ({
   },
 
   select_all: (ids) => {
-    set({ selected_ids: new Set(ids) });
+    set({ selected_ids: [...ids] });
   },
 
   clear_selection: () => {
     set({
-      selected_ids: new Set(),
+      selected_ids: [],
       last_selected_id: null,
     });
   },
@@ -355,3 +360,103 @@ export const use_history_store = create<HistoryState>()((set, get) => ({
 
 // Export types
 export type { FilterState, DatePreset, SortOption, DetailPanelState };
+
+// Memoized selectors
+export const use_history_ui_state = () =>
+  use_history_store(
+    useShallow((s) => ({
+      sidebar_collapsed: s.sidebar_collapsed,
+      is_select_mode: s.is_select_mode,
+      shortcuts_modal_open: s.shortcuts_modal_open,
+      compare_modal_open: s.compare_modal_open,
+    }))
+  );
+
+export const use_history_selection = () =>
+  use_history_store(
+    useShallow((s) => ({
+      selected_ids: s.selected_ids,
+      last_selected_id: s.last_selected_id,
+      focused_id: s.focused_id,
+      focused_index: s.focused_index,
+    }))
+  );
+
+export const use_history_filters = () =>
+  use_history_store(
+    useShallow((s) => ({
+      filters: s.filters,
+    }))
+  );
+
+export const use_history_detail_panel = () =>
+  use_history_store(
+    useShallow((s) => ({
+      detail_panel: s.detail_panel,
+      compare_items: s.compare_items,
+    }))
+  );
+
+export const use_history_selection_actions = () =>
+  use_history_store(
+    useShallow((s) => ({
+      toggle_select_mode: s.toggle_select_mode,
+      exit_select_mode: s.exit_select_mode,
+      select_item: s.select_item,
+      deselect_item: s.deselect_item,
+      toggle_selection: s.toggle_selection,
+      select_range: s.select_range,
+      select_all: s.select_all,
+      clear_selection: s.clear_selection,
+    }))
+  );
+
+export const use_history_navigation_actions = () =>
+  use_history_store(
+    useShallow((s) => ({
+      set_focused_id: s.set_focused_id,
+      set_focused_index: s.set_focused_index,
+    }))
+  );
+
+export const use_history_ui_actions = () =>
+  use_history_store(
+    useShallow((s) => ({
+      toggle_sidebar: s.toggle_sidebar,
+      set_sidebar_collapsed: s.set_sidebar_collapsed,
+      toggle_shortcuts_modal: s.toggle_shortcuts_modal,
+      set_shortcuts_modal_open: s.set_shortcuts_modal_open,
+    }))
+  );
+
+export const use_history_filter_actions = () =>
+  use_history_store(
+    useShallow((s) => ({
+      set_search: s.set_search,
+      set_date_preset: s.set_date_preset,
+      set_date_range: s.set_date_range,
+      toggle_tag: s.toggle_tag,
+      set_tags: s.set_tags,
+      clear_tags: s.clear_tags,
+      set_favorites_only: s.set_favorites_only,
+      set_sort: s.set_sort,
+      reset_filters: s.reset_filters,
+    }))
+  );
+
+export const use_history_detail_actions = () =>
+  use_history_store(
+    useShallow((s) => ({
+      set_detail_item: s.set_detail_item,
+      set_detail_batch: s.set_detail_batch,
+      clear_detail_panel: s.clear_detail_panel,
+    }))
+  );
+
+export const use_history_compare_actions = () =>
+  use_history_store(
+    useShallow((s) => ({
+      open_compare: s.open_compare,
+      close_compare: s.close_compare,
+    }))
+  );

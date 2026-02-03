@@ -1,5 +1,6 @@
 import { get_db, generate_id } from "../db";
 import { now } from "../db-helpers";
+import { build_update_query } from "../db-query-helpers";
 import type { SavedPrompt } from "../types/database";
 
 type RawSavedPrompt = {
@@ -90,30 +91,20 @@ export const update_prompt = (
   const existing = get_prompt(id);
   if (!existing) return null;
 
-  const updates: string[] = [];
-  const values: (string | null)[] = [];
+  const { sql_parts, values } = build_update_query(input, {
+    name: "name",
+    description: "description",
+    prompt_json: { column: "prompt_json", transform: (v) => JSON.stringify(v) },
+  });
 
-  if (input.name !== undefined) {
-    updates.push("name = ?");
-    values.push(input.name);
-  }
-  if (input.description !== undefined) {
-    updates.push("description = ?");
-    values.push(input.description);
-  }
-  if (input.prompt_json !== undefined) {
-    updates.push("prompt_json = ?");
-    values.push(JSON.stringify(input.prompt_json));
-  }
+  if (sql_parts.length === 0) return existing;
 
-  if (updates.length === 0) return existing;
-
-  updates.push("updated_at = ?");
+  sql_parts.push("updated_at = ?");
   values.push(now());
-  values.push(id);
 
-  db.prepare(`UPDATE saved_prompts SET ${updates.join(", ")} WHERE id = ?`).run(
-    ...values
+  db.prepare(`UPDATE saved_prompts SET ${sql_parts.join(", ")} WHERE id = ?`).run(
+    ...values,
+    id
   );
 
   return get_prompt(id);

@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { with_auth } from "@/lib/api-auth";
+import { error_response, server_error_response, success_response } from "@/lib/api-helpers";
 import { analyze_image } from "@/lib/analyze";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -11,29 +11,17 @@ export const POST = async (request: Request) => {
     const file = form_data.get("image") as File | null;
 
     if (!file) {
-      return NextResponse.json(
-        { success: false, error: "No image provided" },
-        { status: 400 }
-      );
+      return error_response("No image provided");
     }
 
     // Validate file type
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid file type. Allowed: JPEG, PNG, WebP, GIF",
-        },
-        { status: 400 }
-      );
+      return error_response("Invalid file type. Allowed: JPEG, PNG, WebP, GIF");
     }
 
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { success: false, error: "File too large. Maximum size: 10MB" },
-        { status: 400 }
-      );
+      return error_response("File too large. Maximum size: 10MB");
     }
 
     // Convert to buffer
@@ -44,15 +32,9 @@ export const POST = async (request: Request) => {
     const result = await analyze_image(buffer, file.type);
 
     if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 500 }
-      );
+      return server_error_response(result.error);
     }
 
-    return NextResponse.json({
-      success: true,
-      data: result.data,
-    });
+    return success_response({ data: result.data });
   });
 };

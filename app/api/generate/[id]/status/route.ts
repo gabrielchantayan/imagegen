@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { with_auth } from "@/lib/api-auth";
+import { json_response, not_found } from "@/lib/api-helpers";
 import { get_generation } from "@/lib/repositories/generations";
 
 export const GET = async (
@@ -11,7 +11,7 @@ export const GET = async (
     const generation = get_generation(id);
 
     if (!generation) {
-      return NextResponse.json({ error: "Generation not found" }, { status: 404 });
+      return not_found("Generation", id);
     }
 
     const response: Record<string, unknown> = {
@@ -26,6 +26,6 @@ export const GET = async (
       response.error = generation.error_message;
     }
 
-    return NextResponse.json(response);
+    return json_response(response);
   });
 };

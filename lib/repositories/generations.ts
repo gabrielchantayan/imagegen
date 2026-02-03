@@ -3,6 +3,7 @@ import path from "path";
 
 import { get_db, generate_id } from "../db";
 import { now, paginate, type PaginatedResult } from "../db-helpers";
+import { build_update_query, build_sql_placeholders } from "../db-query-helpers";
 import type { Generation, GenerationStatus, GenerationWithFavorite, ComponentUsed } from "../types/database";
 
 type RawGeneration = {
@@ -69,38 +70,19 @@ export type UpdateGenerationInput = {
 
 export const update_generation = (id: string, input: UpdateGenerationInput): Generation | null => {
   const db = get_db();
-  const updates: string[] = [];
-  const values: (string | number | null)[] = [];
 
-  if (input.status !== undefined) {
-    updates.push("status = ?");
-    values.push(input.status);
-  }
-  if (input.image_path !== undefined) {
-    updates.push("image_path = ?");
-    values.push(input.image_path);
-  }
-  if (input.error_message !== undefined) {
-    updates.push("error_message = ?");
-    values.push(input.error_message);
-  }
-  if (input.api_response_text !== undefined) {
-    updates.push("api_response_text = ?");
-    values.push(input.api_response_text);
-  }
-  if (input.completed_at) {
-    updates.push("completed_at = ?");
-    values.push(now());
-  }
-  if (input.used_fallback !== undefined) {
-    updates.push("used_fallback = ?");
-    values.push(input.used_fallback ? 1 : 0);
-  }
+  const { sql_parts, values } = build_update_query(input, {
+    status: "status",
+    image_path: "image_path",
+    error_message: "error_message",
+    api_response_text: "api_response_text",
+    completed_at: { column: "completed_at", transform: (v) => v ? now() : null },
+    used_fallback: { column: "used_fallback", transform: (v) => v ? 1 : 0 },
+  });
 
-  if (updates.length === 0) return get_generation(id);
+  if (sql_parts.length === 0) return get_generation(id);
 
-  values.push(id);
-  db.prepare(`UPDATE generations SET ${updates.join(", ")} WHERE id = ?`).run(...values);
+  db.prepare(`UPDATE generations SET ${sql_parts.join(", ")} WHERE id = ?`).run(...values, id);
 
   return get_generation(id);
 };
@@ -188,7 +170,7 @@ export const list_generations_with_favorites = (
 
   if (options.tags && options.tags.length > 0) {
     // Filter by tags - generation must have ALL specified tags
-    const tag_placeholders = options.tags.map(() => "?").join(", ");
+    const tag_placeholders = build_sql_placeholders(options.tags.length);
     where_clause += ` AND g.id IN (
       SELECT generation_id FROM generation_tags
       WHERE tag IN (${tag_placeholders})
@@ -237,7 +219,7 @@ export const list_generations_with_favorites = (
 
   if (generation_ids.length > 0) {
     const db = get_db();
-    const placeholders = generation_ids.map(() => "?").join(", ");
+    const placeholders = build_sql_placeholders(generation_ids.length);
     const tags = db
       .prepare(
         `SELECT * FROM generation_tags WHERE generation_id IN (${placeholders})`
@@ -287,6 +269,24 @@ export const toggle_favorite = (generation_id: string): boolean => {
     ).run(generation_id, now());
     return true;
   }
+};
+
+export const set_favorite = (generation_id: string, is_favorite: boolean): boolean => {
+  const db = get_db();
+
+  const existing = db.prepare(
+    "SELECT 1 FROM favorites WHERE generation_id = ?"
+  ).get(generation_id);
+
+  if (is_favorite && !existing) {
+    db.prepare(
+      "INSERT INTO favorites (generation_id, created_at) VALUES (?, ?)"
+    ).run(generation_id, now());
+  } else if (!is_favorite && existing) {
+    db.prepare("DELETE FROM favorites WHERE generation_id = ?").run(generation_id);
+  }
+
+  return is_favorite;
 };
 
 export const delete_generation = async (id: string): Promise<boolean> => {

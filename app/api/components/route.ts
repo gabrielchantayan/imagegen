@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import { with_auth } from '@/lib/api-auth';
+import { json_response, error_response } from '@/lib/api-helpers';
 import {
   get_all_components,
   get_components_by_category,
@@ -25,7 +25,7 @@ export const GET = async (request: Request) => {
 
     const categories = get_categories();
 
-    return NextResponse.json({ components, categories });
+    return json_response({ components, categories });
   });
 };
 
@@ -35,18 +35,12 @@ export const POST = async (request: Request) => {
 
     // Validate required fields
     if (!body.category_id || !body.name || !body.data) {
-      return NextResponse.json(
-        { error: 'category_id, name, and data are required' },
-        { status: 400 }
-      );
+      return error_response('category_id, name, and data are required');
     }
 
     // Validate data is an object
     if (typeof body.data !== 'object' || Array.isArray(body.data)) {
-      return NextResponse.json(
-        { error: 'data must be a JSON object' },
-        { status: 400 }
-      );
+      return error_response('data must be a JSON object');
     }
 
     const component = create_component({
@@ -56,6 +50,6 @@ export const POST = async (request: Request) => {
       data: body.data,
     });
 
-    return NextResponse.json(component, { status: 201 });
+    return json_response(component, 201);
   });
 };

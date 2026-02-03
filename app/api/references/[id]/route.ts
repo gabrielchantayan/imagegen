@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server";
-
 import { with_auth } from "@/lib/api-auth";
+import { json_response, not_found, success_response } from "@/lib/api-helpers";
 import {
   get_reference,
   delete_reference,
@@ -17,10 +16,10 @@ export const GET = async (_request: Request, { params }: Params) => {
     const reference = get_reference(id);
 
     if (!reference) {
-      return NextResponse.json({ error: "Reference not found" }, { status: 404 });
+      return not_found("Reference", id);
     }
 
-    return NextResponse.json(reference);
+    return json_response(reference);
   });
 };
 
@@ -30,10 +29,10 @@ export const DELETE = async (_request: Request, { params }: Params) => {
     const deleted = await delete_reference(id);
 
     if (!deleted) {
-      return NextResponse.json({ error: "Reference not found" }, { status: 404 });
+      return not_found("Reference", id);
     }
 
-    return NextResponse.json({ success: true });
+    return success_response();
   });
 };
 
@@ -47,9 +46,9 @@ export const PATCH = async (request: Request, { params }: Params) => {
     });
 
     if (!reference) {
-      return NextResponse.json({ error: "Reference not found" }, { status: 404 });
+      return not_found("Reference", id);
     }
 
-    return NextResponse.json(reference);
+    return json_response(reference);
   });
 };

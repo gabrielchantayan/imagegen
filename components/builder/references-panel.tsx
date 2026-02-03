@@ -9,7 +9,8 @@ import { use_references } from "@/lib/hooks/use-references";
 import { useReferenceSyncContext } from "./reference-sync-provider";
 import { ReferenceUploadModal } from "@/components/references/reference-upload-modal";
 import { ReferenceManagerModal } from "@/components/references/reference-manager-modal";
-import { Plus, Settings, X, Loader2, User, Check, Sparkles } from "lucide-react";
+import { Plus, Settings, X, Loader2, User, Check, Sparkles, Search } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { cn } from "@/lib/utils";
 import type { ReferencePhoto } from "@/lib/types/database";
 
@@ -111,29 +112,23 @@ export const ReferencesPanel = () => {
       {/* Grid */}
       <div className="flex-1 overflow-y-auto p-4 min-h-0">
         {filtered_references.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground text-center animate-in fade-in duration-300">
-            <div className="size-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
-              {search ? <User className="size-8" /> : <Plus className="size-8" />}
-            </div>
-            <h3 className="font-semibold text-lg mb-1">
-              {search ? "No matches found" : "No reference photos yet"}
-            </h3>
-            <p className="max-w-xs mx-auto mb-6">
-              {search
+          <EmptyState
+            icon={search ? Search : Plus}
+            heading={search ? "No matches found" : "No reference photos yet"}
+            description={
+              search
                 ? `We couldn't find any references matching "${search}"`
-                : "Upload face reference photos for consistent character generation."}
-            </p>
-            {search ? (
-              <Button variant="outline" onClick={() => set_search("")}>
-                Clear Search
-              </Button>
-            ) : (
-              <Button onClick={() => set_upload_open(true)}>
-                <Plus className="size-4 mr-2" />
-                Upload First Reference
-              </Button>
-            )}
-          </div>
+                : "Upload face reference photos for consistent character generation."
+            }
+            action={
+              search
+                ? { label: "Clear Search", on_click: () => set_search("") }
+                : {
+                    label: "Upload First Reference",
+                    on_click: () => set_upload_open(true),
+                  }
+            }
+          />
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {filtered_references.map((ref) => (

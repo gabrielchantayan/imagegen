@@ -110,7 +110,6 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 
 export const HistoryFilterSidebar = ({
   collapsed,
-  items,
 }: HistoryFilterSidebarProps) => {
   const filters = use_history_store((s) => s.filters);
   const toggle_sidebar = use_history_store((s) => s.toggle_sidebar);

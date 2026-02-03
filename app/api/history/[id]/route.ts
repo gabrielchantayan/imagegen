@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server";
-
 import { with_auth } from "@/lib/api-auth";
+import { json_response, not_found, success_response } from "@/lib/api-helpers";
 import {
   get_generation_with_favorite,
   delete_generation,
@@ -16,10 +15,10 @@ export const GET = async (_request: Request, { params }: RouteParams) => {
     const generation = get_generation_with_favorite(id);
 
     if (!generation) {
-      return NextResponse.json({ error: "Generation not found" }, { status: 404 });
+      return not_found("Generation", id);
     }
 
-    return NextResponse.json(generation);
+    return json_response(generation);
   });
 };
 
@@ -29,9 +28,9 @@ export const DELETE = async (_request: Request, { params }: RouteParams) => {
     const deleted = await delete_generation(id);
 
     if (!deleted) {
-      return NextResponse.json({ error: "Generation not found" }, { status: 404 });
+      return not_found("Generation", id);
     }
 
-    return NextResponse.json({ success: true });
+    return success_response();
   });
 };

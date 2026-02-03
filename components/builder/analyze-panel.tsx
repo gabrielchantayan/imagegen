@@ -4,8 +4,9 @@ import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, X, Copy, Loader2 } from "lucide-react";
+import { LoadingState } from "@/components/shared/loading-state";
+import { ErrorState } from "@/components/shared/error-state";
 import Image from "next/image";
 
 type AnalyzePanelProps = {
@@ -169,11 +170,8 @@ export const AnalyzePanel = ({ on_save_as_presets }: AnalyzePanelProps) => {
 
         <div className="flex-1 flex flex-col min-h-0 bg-card rounded-xl border shadow-sm p-1">
           {error ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              <div className="size-12 rounded-full bg-destructive/10 flex items-center justify-center mb-3">
-                <X className="size-6 text-destructive" />
-              </div>
-              <p className="text-destructive font-medium">{error}</p>
+            <div className="flex-1 flex items-center justify-center">
+              <ErrorState message={error} />
             </div>
           ) : result ? (
             <>
@@ -197,11 +195,7 @@ export const AnalyzePanel = ({ on_save_as_presets }: AnalyzePanelProps) => {
           ) : (
              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-muted/5 rounded-lg m-1 border border-dashed border-muted-foreground/10">
               {analyzing ? (
-                <div className="text-center">
-                  <Loader2 className="size-10 animate-spin mx-auto mb-4 text-primary" />
-                  <p className="font-medium text-foreground">Analyzing image details...</p>
-                  <p className="text-sm opacity-70 mt-1">This may take a moment</p>
-                </div>
+                <LoadingState message="Analyzing image details..." size="lg" />
               ) : (
                 <div className="text-center max-w-[240px]">
                    <p className="text-sm">Upload an image to see the extracted JSON structure here</p>

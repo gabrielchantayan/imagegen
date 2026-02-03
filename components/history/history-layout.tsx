@@ -13,6 +13,7 @@ import { HistoryCompareModal } from "./history-compare-modal";
 import { use_history_store } from "@/lib/stores/history-store";
 import { use_history, toggle_favorite_api, delete_generation_api } from "@/lib/hooks/use-history";
 import { use_builder_store } from "@/lib/stores/builder-store";
+import { use_history_keyboard_shortcuts } from "@/lib/hooks/use-history-keyboard-shortcuts";
 import type { GenerationWithFavorite } from "@/lib/types/database";
 
 export const HistoryLayout = () => {
@@ -63,10 +64,10 @@ export const HistoryLayout = () => {
 
   // Update detail panel when selection changes in batch mode
   useEffect(() => {
-    if (is_select_mode && selected_ids.size > 0) {
-      const selected_items = items.filter((item) => selected_ids.has(item.id));
+    if (is_select_mode && selected_ids.length > 0) {
+      const selected_items = items.filter((item) => selected_ids.includes(item.id));
       set_detail_batch(selected_items);
-    } else if (is_select_mode && selected_ids.size === 0) {
+    } else if (is_select_mode && selected_ids.length === 0) {
       set_detail_batch([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Zustand actions are stable
@@ -116,10 +117,10 @@ export const HistoryLayout = () => {
       mutate();
 
       // Clear from selection if in select mode
-      if (is_select_mode && selected_ids.has(id)) {
-        const new_selected = new Set(selected_ids);
-        new_selected.delete(id);
-        use_history_store.setState({ selected_ids: new_selected });
+      if (is_select_mode && selected_ids.includes(id)) {
+        use_history_store.setState({
+          selected_ids: selected_ids.filter((selected_id) => selected_id !== id),
+        });
       }
 
       // Clear detail panel if showing this item
@@ -141,8 +142,8 @@ export const HistoryLayout = () => {
 
   // Handle compare
   const handle_compare = useCallback(() => {
-    if (selected_ids.size === 2) {
-      const selected_items = items.filter((item) => selected_ids.has(item.id));
+    if (selected_ids.length === 2) {
+      const selected_items = items.filter((item) => selected_ids.includes(item.id));
       if (selected_items.length === 2) {
         open_compare([selected_items[0], selected_items[1]]);
       }
@@ -150,130 +151,31 @@ export const HistoryLayout = () => {
   }, [selected_ids, items, open_compare]);
 
   // Keyboard shortcuts
-  useEffect(() => {
-    const handle_keydown = (e: KeyboardEvent) => {
-      // Ignore if in input/textarea
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
-        return;
-      }
-
-      // ESC - exit select mode or close modal
-      if (e.key === "Escape") {
-        if (shortcuts_modal_open) {
-          set_shortcuts_modal_open(false);
-        } else if (compare_modal_open) {
-          close_compare();
-        } else if (is_select_mode) {
-          exit_select_mode();
-        } else if (detail_panel.mode !== "empty") {
-          set_detail_item(null);
-        }
-        return;
-      }
-
-      // ? - show shortcuts help
-      if (e.key === "?" && !e.ctrlKey && !e.metaKey) {
-        set_shortcuts_modal_open(true);
-        return;
-      }
-
-      // Arrow keys - navigate grid and auto-select
-      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
-        e.preventDefault();
-        const columns = get_grid_columns();
-        let new_index = focused_index;
-
-        if (e.key === "ArrowUp") new_index = Math.max(0, focused_index - columns);
-        if (e.key === "ArrowDown") new_index = Math.min(items.length - 1, focused_index + columns);
-        if (e.key === "ArrowLeft") new_index = Math.max(0, focused_index - 1);
-        if (e.key === "ArrowRight") new_index = Math.min(items.length - 1, focused_index + 1);
-
-        set_focused_index(new_index);
-
-        // Auto-select item in detail panel (unless in select mode)
-        if (!is_select_mode && new_index >= 0 && new_index < items.length) {
-          set_detail_item(items[new_index]);
-        }
-        return;
-      }
-
-      // Enter - open focused item in detail panel
-      if (e.key === "Enter" && focused_index >= 0 && focused_index < items.length) {
-        const item = items[focused_index];
-        if (!is_select_mode) {
-          set_detail_item(item);
-        }
-        return;
-      }
-
-      // Space - toggle selection in select mode
-      if (e.key === " " && is_select_mode && focused_index >= 0 && focused_index < items.length) {
-        e.preventDefault();
-        toggle_selection(items[focused_index].id);
-        return;
-      }
-
-      // S - toggle favorite for focused item
-      if (e.key === "s" && !e.ctrlKey && !e.metaKey) {
-        const target_item =
-          detail_panel.mode === "single"
-            ? detail_panel.item
-            : focused_index >= 0 && focused_index < items.length
-              ? items[focused_index]
-              : null;
-
-        if (target_item) {
-          handle_toggle_favorite(target_item.id);
-        }
-        return;
-      }
-
-      // Delete - delete focused/selected item(s)
-      if (e.key === "Delete" || e.key === "Backspace") {
-        if (detail_panel.mode === "single") {
-          if (confirm("Delete this generation?")) {
-            handle_delete(detail_panel.item.id);
-          }
-        }
-        return;
-      }
-
-      // C - compare (when 2 items selected)
-      if (e.key === "c" && !e.ctrlKey && !e.metaKey && selected_ids.size === 2) {
-        handle_compare();
-        return;
-      }
-    };
-
-    window.addEventListener("keydown", handle_keydown);
-    return () => window.removeEventListener("keydown", handle_keydown);
-  }, [
+  use_history_keyboard_shortcuts({
     is_select_mode,
     selected_ids,
-    detail_panel,
-    focused_index,
     items,
+    focused_index,
+    detail_panel,
     shortcuts_modal_open,
     compare_modal_open,
-    exit_select_mode,
-    toggle_selection,
-    set_detail_item,
-    set_shortcuts_modal_open,
-    close_compare,
-    handle_toggle_favorite,
-    handle_delete,
-    handle_compare,
-    set_focused_index,
-  ]);
+    on_delete: handle_delete,
+    on_toggle_favorite: handle_toggle_favorite,
+    on_toggle_selection: toggle_selection,
+    on_exit_select_mode: exit_select_mode,
+    on_set_focused_index: set_focused_index,
+    on_open_detail: set_detail_item,
+    on_open_shortcuts: set_shortcuts_modal_open,
+    on_close_compare: close_compare,
+    on_compare: handle_compare,
+    get_grid_columns,
+  });
 
   return (
     <div className="h-screen flex flex-col">
       <HistoryToolbar
         total={total}
-        selected_count={selected_ids.size}
+        selected_count={selected_ids.length}
         is_select_mode={is_select_mode}
         on_toggle_select_mode={toggle_select_mode}
         on_compare={handle_compare}

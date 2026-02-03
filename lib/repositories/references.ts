@@ -3,6 +3,7 @@ import path from "path";
 
 import { get_db, generate_id } from "../db";
 import { now } from "../db-helpers";
+import { build_sql_placeholders } from "../db-query-helpers";
 import type {
   ReferencePhoto,
   ReferencePhotoWithComponents,
@@ -48,7 +49,7 @@ export const get_references_by_ids = (ids: string[]): ReferencePhoto[] => {
   if (ids.length === 0) return [];
 
   const db = get_db();
-  const placeholders = ids.map(() => "?").join(", ");
+  const placeholders = build_sql_placeholders(ids.length);
   return db
     .prepare(`SELECT * FROM reference_photos WHERE id IN (${placeholders})`)
     .all(...ids) as RawReferencePhoto[];

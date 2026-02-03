@@ -1,5 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
+import { extract_json_from_response } from "@/lib/gemini-response-parser";
+
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 export const FACIAL_ANALYSIS_PROMPT = `
@@ -110,40 +112,21 @@ export const analyze_facial = async (
       },
     });
 
-    // Extract text from response
-    let text = "";
-    for (const candidate of result.candidates || []) {
-      for (const part of candidate.content?.parts || []) {
-        if (part.text) {
-          text += part.text;
-        }
-      }
-    }
+    const extraction = extract_json_from_response(result);
 
-    // Extract JSON from response
-    const json_match = text.match(/\{[\s\S]*\}/);
-    if (!json_match) {
-      return {
-        success: false,
-        raw_text: text,
-        error: "No JSON found in response",
-      };
-    }
-
-    try {
-      const data = JSON.parse(json_match[0]);
+    if (extraction.success) {
       return {
         success: true,
-        data,
-        raw_text: text,
-      };
-    } catch {
-      return {
-        success: false,
-        raw_text: text,
-        error: "Failed to parse JSON from response",
+        data: extraction.data,
+        raw_text: extraction.raw_text,
       };
     }
+
+    return {
+      success: false,
+      raw_text: extraction.raw_text,
+      error: extraction.error,
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return {

@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import { with_auth } from '@/lib/api-auth';
+import { json_response, error_response, not_found, success_response } from '@/lib/api-helpers';
 import { get_component, update_component, delete_component } from '@/lib/repositories/components';
 
 type RouteParams = {
@@ -15,13 +15,10 @@ export const GET = async (
     const component = get_component(id);
 
     if (!component) {
-      return NextResponse.json(
-        { error: 'Component not found' },
-        { status: 404 }
-      );
+      return not_found('Component', id);
     }
 
-    return NextResponse.json(component);
+    return json_response(component);
   });
 };
 
@@ -36,10 +33,7 @@ export const PUT = async (
     // Validate data if provided
     if (body.data !== undefined) {
       if (typeof body.data !== 'object' || Array.isArray(body.data)) {
-        return NextResponse.json(
-          { error: 'data must be a JSON object' },
-          { status: 400 }
-        );
+        return error_response('data must be a JSON object');
       }
     }
 
@@ -50,13 +44,10 @@ export const PUT = async (
     });
 
     if (!component) {
-      return NextResponse.json(
-        { error: 'Component not found' },
-        { status: 404 }
-      );
+      return not_found('Component', id);
     }
 
-    return NextResponse.json(component);
+    return json_response(component);
   });
 };
 
@@ -69,12 +60,9 @@ export const DELETE = async (
     const deleted = delete_component(id);
 
     if (!deleted) {
-      return NextResponse.json(
-        { error: 'Component not found' },
-        { status: 404 }
-      );
+      return not_found('Component', id);
     }
 
-    return NextResponse.json({ success: true });
+    return success_response();
   });
 };

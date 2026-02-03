@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { with_auth } from "@/lib/api-auth";
+import { json_response, not_found, success_response } from "@/lib/api-helpers";
 import {
   get_prompt,
   update_prompt,
@@ -16,10 +16,10 @@ export const GET = async (_request: Request, { params }: RouteParams) => {
     const prompt = get_prompt(id);
 
     if (!prompt) {
-      return NextResponse.json({ error: "Prompt not found" }, { status: 404 });
+      return not_found("Prompt", id);
     }
 
-    return NextResponse.json(prompt);
+    return json_response(prompt);
   });
 };
 
@@ -35,10 +35,10 @@ export const PUT = async (request: Request, { params }: RouteParams) => {
     });
 
     if (!prompt) {
-      return NextResponse.json({ error: "Prompt not found" }, { status: 404 });
+      return not_found("Prompt", id);
     }
 
-    return NextResponse.json(prompt);
+    return json_response(prompt);
   });
 };
 
@@ -48,9 +48,9 @@ export const DELETE = async (_request: Request, { params }: RouteParams) => {
     const deleted = delete_prompt(id);
 
     if (!deleted) {
-      return NextResponse.json({ error: "Prompt not found" }, { status: 404 });
+      return not_found("Prompt", id);
     }
 
-    return NextResponse.json({ success: true });
+    return success_response();
   });
 };

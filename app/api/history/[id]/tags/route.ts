@@ -1,6 +1,5 @@
-
-import { NextResponse } from "next/server";
 import { with_auth } from "@/lib/api-auth";
+import { error_response, success_response } from "@/lib/api-helpers";
 import { get_db } from "@/lib/db";
 
 export const POST = async (
@@ -13,32 +12,31 @@ export const POST = async (
     const { tag } = body;
 
     if (!tag || typeof tag !== "string") {
-      return NextResponse.json({ error: "Tag is required" }, { status: 400 });
+      return error_response("Tag is required");
     }
 
     const db = get_db();
-    
+
     // Check if exists to avoid duplicates
     const existing = db.prepare(
       "SELECT 1 FROM generation_tags WHERE generation_id = ? AND tag = ?"
     ).get(id, tag);
 
     if (existing) {
-       return NextResponse.json({ success: true, message: "Tag already exists" });
+       return success_response({ message: "Tag already exists" });
     }
 
     const result = db.prepare(
       "INSERT INTO generation_tags (generation_id, tag, category) VALUES (?, ?, 'user')"
     ).run(id, tag);
 
-    return NextResponse.json({ 
-      success: true, 
-      tag: { 
-        id: Number(result.lastInsertRowid), 
-        generation_id: id, 
-        tag, 
-        category: 'user' 
-      } 
+    return success_response({
+      tag: {
+        id: Number(result.lastInsertRowid),
+        generation_id: id,
+        tag,
+        category: 'user'
+      }
     });
   });
 };
@@ -53,7 +51,7 @@ export const DELETE = async (
     const { tag } = body;
 
     if (!tag || typeof tag !== "string") {
-      return NextResponse.json({ error: "Tag is required" }, { status: 400 });
+      return error_response("Tag is required");
     }
 
     const db = get_db();
@@ -61,6 +59,6 @@ export const DELETE = async (
       "DELETE FROM generation_tags WHERE generation_id = ? AND tag = ?"
     ).run(id, tag);
 
-    return NextResponse.json({ success: true });
+    return success_response();
   });
 };

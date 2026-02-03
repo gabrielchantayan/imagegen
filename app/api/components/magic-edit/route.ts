@@ -68,7 +68,7 @@ RULES:
         if (jsonMatch) {
             try {
                 modified_json = JSON.parse(jsonMatch[0]);
-            } catch (e2) {
+            } catch {
                  return NextResponse.json(
                     { error: "Failed to parse LLM response as JSON", raw: response_text },
                     { status: 500 }

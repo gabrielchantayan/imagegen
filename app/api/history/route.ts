@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server";
-
 import { with_auth } from "@/lib/api-auth";
+import { json_response } from "@/lib/api-helpers";
 import { list_generations_with_favorites } from "@/lib/repositories/generations";
 
 export const GET = async (request: Request) => {
@@ -26,6 +25,6 @@ export const GET = async (request: Request) => {
       sort,
     });
 
-    return NextResponse.json(result);
+    return json_response(result);
   });
 };
