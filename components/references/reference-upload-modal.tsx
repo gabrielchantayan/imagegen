@@ -47,7 +47,7 @@ export const ReferenceUploadModal = ({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: on_drop,
     accept: {
-      "image/*": [".jpg", ".jpeg", ".png", ".webp", ".gif"],
+      "image/*": [".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"],
     },
     maxFiles: 1,
     multiple: false,
@@ -132,7 +132,7 @@ export const ReferenceUploadModal = ({
                         : "Drop an image or click to browse"}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      JPG, PNG, WebP, or GIF
+                      JPG, PNG, WebP, GIF, or AVIF
                     </p>
                   </div>
                 </div>

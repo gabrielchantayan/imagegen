@@ -1,5 +1,6 @@
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import sharp from "sharp";
 
 import { with_auth } from "@/lib/api-auth";
 import { json_response, error_response } from "@/lib/api-helpers";
@@ -45,20 +46,27 @@ export const POST = async (request: Request) => {
     }
 
     // Validate file type
-    const valid_types = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    const valid_types = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
     if (!valid_types.includes(file.type)) {
-      return error_response("Invalid file type. Allowed: JPEG, PNG, WebP, GIF");
+      return error_response("Invalid file type. Allowed: JPEG, PNG, WebP, GIF, AVIF");
     }
 
     // Create references directory if it doesn't exist
     await mkdir(REFERENCES_DIR, { recursive: true });
 
-    // Generate filename and save file
-    const ext = file.type.split("/")[1] || "png";
+    // Convert AVIF to PNG, keep other formats as-is
+    let buffer = Buffer.from(await file.arrayBuffer());
+    let final_mime_type = file.type;
+    let ext = file.type.split("/")[1] || "png";
+
+    if (file.type === "image/avif") {
+      buffer = await sharp(buffer).png().toBuffer();
+      final_mime_type = "image/png";
+      ext = "png";
+    }
+
     const filename = `${generate_id()}.${ext}`;
     const file_path = path.join(REFERENCES_DIR, filename);
-
-    const buffer = Buffer.from(await file.arrayBuffer());
     await writeFile(file_path, buffer);
 
     // Create database record
@@ -66,7 +74,7 @@ export const POST = async (request: Request) => {
       name: name.trim(),
       image_path: `/images/references/${filename}`,
       original_filename: file.name,
-      mime_type: file.type,
+      mime_type: final_mime_type,
     });
 
     return json_response(reference, 201);

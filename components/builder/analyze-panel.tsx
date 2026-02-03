@@ -33,7 +33,7 @@ export const AnalyzePanel = ({ on_save_as_presets }: AnalyzePanelProps) => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: on_drop,
     accept: {
-      "image/*": [".jpeg", ".jpg", ".png", ".webp", ".gif"],
+      "image/*": [".jpeg", ".jpg", ".png", ".webp", ".gif", ".avif"],
     },
     maxSize: 10 * 1024 * 1024,
     multiple: false,
@@ -127,7 +127,7 @@ export const AnalyzePanel = ({ on_save_as_presets }: AnalyzePanelProps) => {
                 or drag and drop here
               </p>
               <p className="text-xs text-muted-foreground/60 uppercase tracking-wider font-medium">
-                JPEG, PNG, WEBP, GIF (MAX 10MB)
+                JPEG, PNG, WEBP, GIF, AVIF (MAX 10MB)
               </p>
             </div>
           )}

@@ -43,7 +43,7 @@ export const ComponentInlineReferences = ({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: on_drop,
     accept: {
-      'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
+      'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'],
     },
     maxFiles: 1,
     multiple: false,

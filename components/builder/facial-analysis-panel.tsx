@@ -47,7 +47,7 @@ export const FacialAnalysisPanel = ({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: on_drop,
     accept: {
-      "image/*": [".jpeg", ".jpg", ".png", ".webp", ".gif"],
+      "image/*": [".jpeg", ".jpg", ".png", ".webp", ".gif", ".avif"],
     },
     maxSize: 10 * 1024 * 1024,
     multiple: false,

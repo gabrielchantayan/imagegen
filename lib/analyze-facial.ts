@@ -1,6 +1,18 @@
 import { GoogleGenAI } from "@google/genai";
+import sharp from "sharp";
 
 import { extract_json_from_response } from "@/lib/gemini-response-parser";
+
+const convert_to_supported_format = async (
+  buffer: Buffer,
+  mime_type: string
+): Promise<{ buffer: Buffer; mime_type: string }> => {
+  if (mime_type === "image/avif") {
+    const converted = await sharp(buffer).png().toBuffer();
+    return { buffer: converted, mime_type: "image/png" };
+  }
+  return { buffer, mime_type };
+};
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
@@ -91,10 +103,15 @@ export const analyze_facial = async (
     const model_name =
       process.env.GEMINI_ANALYSIS_MODEL || "gemini-3-pro-preview";
 
+    const { buffer, mime_type: converted_mime } = await convert_to_supported_format(
+      image_buffer,
+      mime_type
+    );
+
     const image_part = {
       inlineData: {
-        data: image_buffer.toString("base64"),
-        mimeType: mime_type,
+        data: buffer.toString("base64"),
+        mimeType: converted_mime,
       },
     };
 

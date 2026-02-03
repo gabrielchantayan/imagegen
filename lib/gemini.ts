@@ -86,10 +86,17 @@ export const generate_image = async (
           },
         });
       }
-    }
 
-    // Add text prompt
-    parts.push({ text: prompt_text });
+      // Add face reference instruction BEFORE the main prompt
+      const ref_count = options.reference_images.length;
+      const face_instruction = `The ${ref_count === 1 ? "image above is a" : "images above are"} facial reference${ref_count === 1 ? "" : "s"}. Use ${ref_count === 1 ? "this face" : "these faces"} as the identity for the subject in the generated image. The generated person should have the exact facial features, face shape, and likeness from the reference ${ref_count === 1 ? "photo" : "photos"}. Preserve all other aspects (skin color, body, pose, wardrobe, background) from the prompt below.
+
+`;
+      parts.push({ text: face_instruction + prompt_text });
+    } else {
+      // Add text prompt without face reference instruction
+      parts.push({ text: prompt_text });
+    }
 
     const result = await genAI.models.generateContent({
       model: model_name,

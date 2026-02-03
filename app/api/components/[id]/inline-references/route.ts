@@ -1,6 +1,7 @@
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
+import sharp from "sharp";
 
 import { with_auth } from "@/lib/api-auth";
 import { get_component, update_component } from "@/lib/repositories/components";
@@ -42,10 +43,10 @@ export const POST = async (request: Request, { params }: Params) => {
     }
 
     // Validate file type
-    const valid_types = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    const valid_types = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
     if (!valid_types.includes(file.type)) {
       return NextResponse.json(
-        { error: "Invalid file type. Allowed: JPEG, PNG, WebP, GIF" },
+        { error: "Invalid file type. Allowed: JPEG, PNG, WebP, GIF, AVIF" },
         { status: 400 }
       );
     }
@@ -53,14 +54,21 @@ export const POST = async (request: Request, { params }: Params) => {
     // Create directory if it doesn't exist
     await mkdir(INLINE_REFS_DIR, { recursive: true });
 
+    // Convert AVIF to PNG, keep other formats as-is
+    let buffer = Buffer.from(await file.arrayBuffer());
+    let ext = file.type.split("/")[1] || "png";
+
+    if (file.type === "image/avif") {
+      buffer = await sharp(buffer).png().toBuffer();
+      ext = "png";
+    }
+
     // Generate filename: {component_id}-{timestamp}.{ext}
-    const ext = file.type.split("/")[1] || "png";
     const filename = `${id}-${Date.now()}.${ext}`;
     const file_path = path.join(INLINE_REFS_DIR, filename);
     const public_path = `/images/references/components/${filename}`;
 
     // Save file to disk
-    const buffer = Buffer.from(await file.arrayBuffer());
     await writeFile(file_path, buffer);
 
     // Add path to component's inline_references array
