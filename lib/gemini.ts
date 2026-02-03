@@ -131,7 +131,7 @@ IDENTITY PRESERVATION (MANDATORY):
 EXECUTION GUIDELINES:
 -   Imagine you are a Senior VFX Compositor at a top studio. Your job is "Seamless Character Integration".
 -   The character from the reference must look like they *naturally belong* in the new scene's lighting environment.
--   Match the reference's facial texture. For skin color, follow the PROMPT. If the prompt does not specify skin color, match the reference.
+-   Match the reference's facial texture. For skin color, follow the PROMPT ONLY. If the prompt does not specify skin color, DO NOT copy from the reference—use a neutral, contextually appropriate skin tone that fits the scene.
 -   If the scene is painterly, render the face in that style while maintaining geometric accuracy. If photorealistic, maintain photorealism.
 -   The output should pass a "same person" verification test—a viewer should have ZERO doubt it's the same character.
 
@@ -252,11 +252,12 @@ IMAGE 2 (SOURCE) - THE "ACTOR":
 -   This contains the REQUIRED facial geometry.
 -   Treat this face as a rigid 3D mesh. Key landmarks (inter-pupillary distance, nose bridge, jaw shape) are IMMUTABLE.
 -   This is the "Principal Actor" for this scene.
+-   DO NOT copy any accessories, jewelry, glasses, clothing, or skin color from Image 2. Use Image 2 ONLY for facial geometry and identity features (eye shape, nose shape, mouth shape, face structure).
 
 EXECUTION GUIDELINES:
 -   Imagine you are a Senior VFX Compositor at a top studio.
 -   Your job is "Seamless Integration". The face from Image 2 must look like it *naturally belongs* in the lighting environment of Image 1.
--   Match skin tones, grain, and lighting fallout perfectly.
+-   Match the skin tone FROM IMAGE 1 (TARGET). The reference face (Image 2) should adapt to the target's skin color, not the other way around. Match grain and lighting fallout to Image 1's environment.
 -   If the target is a painting, the face must become a painting. If the target is a photo, the face must be photorealistic.
 
 FINAL OUTPUT:
