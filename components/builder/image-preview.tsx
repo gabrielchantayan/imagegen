@@ -2,7 +2,115 @@
 
 import { use_builder_store } from "@/lib/stores/builder-store";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Loader2, Download, RefreshCw } from "lucide-react";
+import { ImageIcon, Loader2, Download, RefreshCw, AlertCircle, CreditCard, Ban, ServerCrash } from "lucide-react";
+
+type ParsedError = {
+  title: string;
+  message: string;
+  icon: "quota" | "blocked" | "server" | "generic";
+};
+
+const parse_generation_error = (error: string): ParsedError => {
+  // Try to parse JSON error from Gemini API
+  try {
+    const parsed = JSON.parse(error);
+    const code = parsed?.error?.code;
+    const status = parsed?.error?.status;
+    const message = parsed?.error?.message;
+
+    // Quota exceeded (429 / RESOURCE_EXHAUSTED)
+    if (code === 429 || status === "RESOURCE_EXHAUSTED") {
+      return {
+        title: "API Quota Exceeded",
+        message: "The Gemini API quota has been reached. Please try again later or check the API billing settings.",
+        icon: "quota",
+      };
+    }
+
+    // Safety filter / blocked content
+    if (status === "INVALID_ARGUMENT" || (message && message.toLowerCase().includes("safety"))) {
+      return {
+        title: "Content Blocked",
+        message: "The request was blocked by content safety filters. Try adjusting your prompt.",
+        icon: "blocked",
+      };
+    }
+
+    // Permission / auth errors
+    if (code === 403 || status === "PERMISSION_DENIED") {
+      return {
+        title: "API Access Denied",
+        message: "The API key doesn't have permission for this operation. Check the API configuration.",
+        icon: "server",
+      };
+    }
+
+    // Server errors
+    if (code >= 500 || status === "INTERNAL") {
+      return {
+        title: "Server Error",
+        message: "The Gemini API encountered an error. Please try again.",
+        icon: "server",
+      };
+    }
+
+    // Use API message if available
+    if (message) {
+      return {
+        title: "Generation Failed",
+        message: message.length > 150 ? message.slice(0, 150) + "..." : message,
+        icon: "generic",
+      };
+    }
+  } catch {
+    // Not JSON, check for common patterns
+  }
+
+  // Check for common error patterns in plain text
+  if (error.toLowerCase().includes("quota") || error.includes("429")) {
+    return {
+      title: "API Quota Exceeded",
+      message: "The Gemini API quota has been reached. Please try again later.",
+      icon: "quota",
+    };
+  }
+
+  if (error.toLowerCase().includes("safety") || error.toLowerCase().includes("blocked")) {
+    return {
+      title: "Content Blocked",
+      message: "The request was blocked by content safety filters.",
+      icon: "blocked",
+    };
+  }
+
+  if (error.toLowerCase().includes("no images generated")) {
+    return {
+      title: "No Image Generated",
+      message: "The API returned no images. Try a different prompt.",
+      icon: "generic",
+    };
+  }
+
+  // Default fallback
+  return {
+    title: "Generation Failed",
+    message: error.length > 150 ? error.slice(0, 150) + "..." : error,
+    icon: "generic",
+  };
+};
+
+const ErrorIcon = ({ type }: { type: ParsedError["icon"] }) => {
+  switch (type) {
+    case "quota":
+      return <CreditCard className="size-8 mb-3" />;
+    case "blocked":
+      return <Ban className="size-8 mb-3" />;
+    case "server":
+      return <ServerCrash className="size-8 mb-3" />;
+    default:
+      return <AlertCircle className="size-8 mb-3" />;
+  }
+};
 
 export const ImagePreview = () => {
   const last_generated_image = use_builder_store((s) => s.last_generated_image);
@@ -31,11 +139,13 @@ export const ImagePreview = () => {
   }
 
   if (generation_status === "failed" && generation_error) {
+    const parsed = parse_generation_error(generation_error);
     return (
-      <div className="h-full flex flex-col items-center justify-center p-4">
-        <div className="text-destructive text-center">
-          <p className="font-medium mb-2">Generation failed</p>
-          <p className="text-sm text-muted-foreground">{generation_error}</p>
+      <div className="h-full flex flex-col items-center justify-center p-6">
+        <div className="text-destructive/80 flex flex-col items-center text-center max-w-sm">
+          <ErrorIcon type={parsed.icon} />
+          <p className="font-semibold text-lg mb-2">{parsed.title}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{parsed.message}</p>
         </div>
       </div>
     );
