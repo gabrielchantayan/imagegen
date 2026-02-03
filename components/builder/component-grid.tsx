@@ -18,6 +18,7 @@ import {
   update_component_api,
   delete_component_api,
 } from "@/lib/hooks/use-components";
+import { use_references } from "@/lib/hooks/use-references";
 import { use_builder_store, SHARED_CATEGORIES } from "@/lib/stores/builder-store";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { Loader2, Plus, ScanFace, Search, X } from "lucide-react";
@@ -35,7 +36,19 @@ export const ComponentGrid = () => {
   const show_inline_references = use_builder_store((s) => s.settings.show_inline_references);
 
   const { components, categories, is_loading, mutate } = use_components(active_category);
+  const { references, component_defaults } = use_references();
   const [search, set_search] = useState("");
+
+  // Create a map of component_id -> face reference image paths
+  const face_reference_paths_map = new Map<string, string[]>();
+  for (const [component_id, ref_ids] of Object.entries(component_defaults)) {
+    const paths = ref_ids
+      .map((ref_id) => references.find((r) => r.id === ref_id)?.image_path)
+      .filter((p): p is string => !!p);
+    if (paths.length > 0) {
+      face_reference_paths_map.set(component_id, paths);
+    }
+  }
   const [editor_open, set_editor_open] = useState(false);
   const [editing_component, set_editing_component] = useState<Component | null>(null);
   const [analysis_data, set_analysis_data] = useState<Record<string, unknown> | null>(null);
@@ -222,6 +235,7 @@ export const ComponentGrid = () => {
                 selected={selection_order_map.has(component.id)}
                 selection_order={selection_order_map.get(component.id)}
                 show_inline_references={show_inline_references}
+                face_reference_paths={face_reference_paths_map.get(component.id)}
                 on_select={() => handle_select(component)}
                 on_edit={() => {
                   set_editing_component(component);

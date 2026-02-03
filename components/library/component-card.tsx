@@ -11,6 +11,7 @@ type ComponentCardProps = {
   selected?: boolean;
   selection_order?: number;
   show_inline_references?: boolean;
+  face_reference_paths?: string[];
   on_select?: () => void;
   on_edit?: () => void;
 };
@@ -20,10 +21,16 @@ export const ComponentCard = ({
   selected,
   selection_order,
   show_inline_references = true,
+  face_reference_paths,
   on_select,
   on_edit
 }: ComponentCardProps) => {
-  const has_references = component.inline_references && component.inline_references.length > 0;
+  // Combine inline references and face references
+  const all_reference_paths = [
+    ...(component.inline_references ?? []),
+    ...(face_reference_paths ?? []),
+  ];
+  const has_references = all_reference_paths.length > 0;
   const show_image = show_inline_references && has_references;
 
   return (
@@ -34,19 +41,19 @@ export const ComponentCard = ({
       )}
       onClick={on_select}
     >
-      <div className={cn("flex gap-3 px-3 py-1.5", show_image && "pl-1.5")}>
+      <div className={cn("flex items-center gap-3 px-3 py-1.5", show_image && "pl-1.5")}>
         {/* Reference image thumbnail */}
         {show_image && (
           <div className="relative shrink-0 w-12 h-12 bg-muted/30 rounded-md overflow-hidden border">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={component.inline_references[0]}
+              src={all_reference_paths[0]}
               alt=""
               className="w-full h-full object-cover"
             />
-            {component.inline_references.length > 1 && (
+            {all_reference_paths.length > 1 && (
               <div className="absolute bottom-0 left-0 bg-black/60 text-white text-[10px] px-1 rounded-tr-md">
-                +{component.inline_references.length - 1}
+                +{all_reference_paths.length - 1}
               </div>
             )}
           </div>
