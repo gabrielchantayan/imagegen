@@ -13,12 +13,13 @@ export const POST = async (request: Request) => {
     }
 
     const count = Math.min(Math.max(1, Number(body.options?.count || 1)), 4);
+    const reference_photo_ids = body.reference_photo_ids as string[] | undefined;
     const results = [];
 
     // Enqueue multiple generations
     for (let i = 0; i < count; i++) {
-      const generation = create_generation(body.prompt_json);
-      const queue_item = enqueue(body.prompt_json, generation.id);
+      const generation = create_generation(body.prompt_json, reference_photo_ids);
+      const queue_item = enqueue(body.prompt_json, generation.id, reference_photo_ids);
       results.push({
         queue_id: queue_item.id,
         generation_id: generation.id,

@@ -36,6 +36,8 @@ export type Generation = {
   api_response_text: string | null;
   created_at: string;
   completed_at: string | null;
+  reference_photo_ids: string[] | null;
+  used_fallback: boolean;
 };
 
 export type QueueStatus = "queued" | "processing" | "completed" | "failed";
@@ -47,6 +49,7 @@ export type QueueItem = {
   created_at: string;
   started_at: string | null;
   completed_at: string | null;
+  reference_photo_ids: string[] | null;
 };
 
 export type SessionState = {
@@ -70,5 +73,25 @@ export type Favorite = {
 export type GenerationWithFavorite = Generation & {
   is_favorite: boolean;
   tags?: { id: number; tag: string; category: string | null }[];
+  reference_photo_ids?: string[] | null;
+  used_fallback?: boolean;
+};
+
+export type ReferencePhoto = {
+  id: string;
+  name: string;
+  image_path: string;
+  original_filename: string | null;
+  mime_type: string;
+  created_at: string;
+};
+
+export type ReferencePhotoWithComponents = ReferencePhoto & {
+  component_ids: string[];
+};
+
+export type ComponentReferenceDefault = {
+  component_id: string;
+  reference_photo_id: string;
 };
 

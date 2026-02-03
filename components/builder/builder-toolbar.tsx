@@ -17,6 +17,7 @@ export const BuilderToolbar = () => {
   const generation_status = use_builder_store((s) => s.generation_status);
   const queue_position = use_builder_store((s) => s.queue_position);
   const settings = use_builder_store((s) => s.settings);
+  const selected_reference_ids = use_builder_store((s) => s.selected_reference_ids);
   const set_generation_status = use_builder_store((s) => s.set_generation_status);
   const set_queue_position = use_builder_store((s) => s.set_queue_position);
   const set_generation_error = use_builder_store((s) => s.set_generation_error);
@@ -68,6 +69,7 @@ export const BuilderToolbar = () => {
       const result = await submit_generation(composed_prompt, {
         aspect_ratio: settings.aspect_ratio,
         count: settings.image_count,
+        reference_photo_ids: selected_reference_ids.length > 0 ? selected_reference_ids : undefined,
       });
 
       generation_id_ref.current = result.generation_id;
@@ -79,7 +81,7 @@ export const BuilderToolbar = () => {
       set_generation_status("failed");
       set_generation_error(error instanceof Error ? error.message : "Failed to submit generation");
     }
-  }, [composed_prompt, settings, set_generation_status, set_generation_error, set_queue_position, poll_status]);
+  }, [composed_prompt, settings, selected_reference_ids, set_generation_status, set_generation_error, set_queue_position, poll_status]);
 
   const handle_save_prompt = () => {
     set_save_modal_open(true);

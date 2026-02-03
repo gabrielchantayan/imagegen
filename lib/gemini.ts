@@ -5,12 +5,18 @@ const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 export type AspectRatio = "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
 export type ImageSize = "1K" | "2K" | "4K";
 
+export type ReferenceImage = {
+  data: Buffer;
+  mime_type: string;
+};
+
 export type GenerationOptions = {
   aspect_ratio?: AspectRatio;
   image_size?: ImageSize;
   number_of_images?: number;
   safety_override?: boolean;
   use_google_search?: boolean;
+  reference_images?: ReferenceImage[];
 };
 
 export type GenerationResult = {
@@ -52,9 +58,27 @@ export const generate_image = async (
 
     const prompt_text = format_prompt_for_gemini(prompt);
 
+    // Build content parts: reference images first, then text prompt
+    const parts: Array<{ text: string } | { inlineData: { data: string; mimeType: string } }> = [];
+
+    // Add reference images if provided
+    if (options.reference_images && options.reference_images.length > 0) {
+      for (const ref_image of options.reference_images) {
+        parts.push({
+          inlineData: {
+            data: ref_image.data.toString("base64"),
+            mimeType: ref_image.mime_type,
+          },
+        });
+      }
+    }
+
+    // Add text prompt
+    parts.push({ text: prompt_text });
+
     const result = await genAI.models.generateContent({
       model: model_name,
-      contents: [{ role: "user", parts: [{ text: prompt_text }] }],
+      contents: [{ role: "user", parts }],
       config: generation_config,
     });
 
@@ -104,4 +128,71 @@ export const generate_image = async (
 
 const format_prompt_for_gemini = (prompt: Record<string, unknown>): string => {
   return JSON.stringify(prompt, null, 2);
+};
+
+export type FaceSwapResult = {
+  success: boolean;
+  image?: Buffer;
+  mime_type?: string;
+  error?: string;
+};
+
+export const face_swap_edit = async (
+  base_image: Buffer,
+  base_mime_type: string,
+  reference_image: Buffer,
+  reference_mime_type: string
+): Promise<FaceSwapResult> => {
+  try {
+    const model_name = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp-image-generation";
+
+    const parts = [
+      {
+        inlineData: {
+          data: reference_image.toString("base64"),
+          mimeType: reference_mime_type,
+        },
+      },
+      {
+        inlineData: {
+          data: base_image.toString("base64"),
+          mimeType: base_mime_type,
+        },
+      },
+      {
+        text: "Replace the face of the subject in the second image with the face from the first reference photo. Maintain the exact pose, lighting, expression, body position, clothing, and all other details from the second image. Only the facial features should change to match the reference.",
+      },
+    ];
+
+    const result = await genAI.models.generateContent({
+      model: model_name,
+      contents: [{ role: "user", parts }],
+      config: {
+        responseModalities: ["IMAGE", "TEXT"],
+      },
+    });
+
+    for (const candidate of result.candidates || []) {
+      for (const part of candidate.content?.parts || []) {
+        if (part.inlineData) {
+          return {
+            success: true,
+            image: Buffer.from(part.inlineData.data!, "base64"),
+            mime_type: part.inlineData.mimeType || "image/png",
+          };
+        }
+      }
+    }
+
+    return {
+      success: false,
+      error: "Face swap did not return an image",
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return {
+      success: false,
+      error: message,
+    };
+  }
 };

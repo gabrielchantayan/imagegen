@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Star, Check } from "lucide-react";
+import { Star, Check, User, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { GenerationWithFavorite } from "@/lib/types/database";
@@ -93,14 +93,33 @@ export const HistoryCard = ({
         />
       </Button>
 
-      {/* Date badge */}
+      {/* Bottom info */}
       <div
         className={`
-          absolute bottom-2 left-2 text-xs text-white transition-opacity
+          absolute bottom-2 left-2 right-2 flex items-center justify-between text-xs text-white transition-opacity
           ${is_select_mode ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
         `}
       >
-        {new Date(item.created_at).toLocaleDateString()}
+        <span>{new Date(item.created_at).toLocaleDateString()}</span>
+        <div className="flex items-center gap-1">
+          {item.reference_photo_ids && item.reference_photo_ids.length > 0 && (
+            <span
+              className="flex items-center gap-0.5 bg-black/50 rounded px-1 py-0.5"
+              title={`${item.reference_photo_ids.length} reference${item.reference_photo_ids.length !== 1 ? "s" : ""} used`}
+            >
+              <User className="size-3" />
+              {item.reference_photo_ids.length}
+            </span>
+          )}
+          {item.used_fallback && (
+            <span
+              className="flex items-center bg-amber-500/70 rounded px-1 py-0.5"
+              title="Face swapped (fallback)"
+            >
+              <RefreshCw className="size-3" />
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Selected indicator overlay */}

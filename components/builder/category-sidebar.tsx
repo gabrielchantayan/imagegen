@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { use_components } from "@/lib/hooks/use-components";
 import { use_builder_store, SHARED_CATEGORIES } from "@/lib/stores/builder-store";
 import { cn } from "@/lib/utils";
-import { ImageIcon, Loader2, Sparkles } from "lucide-react";
+import { ImageIcon, Loader2, Sparkles, User } from "lucide-react";
 
 type CategorySidebarProps = {
   className?: string;
@@ -18,6 +18,7 @@ export const CategorySidebar = ({ className }: CategorySidebarProps) => {
   const set_active_category = use_builder_store((s) => s.set_active_category);
   const subjects = use_builder_store((s) => s.subjects);
   const shared_selections = use_builder_store((s) => s.shared_selections);
+  const selected_reference_ids = use_builder_store((s) => s.selected_reference_ids);
 
   // Get selection count for category
   const get_selection_count = (category_id: string): number => {
@@ -71,6 +72,19 @@ export const CategorySidebar = ({ className }: CategorySidebarProps) => {
       <Separator className="my-2" />
 
       <div className="px-2 space-y-1">
+        <Button
+          variant={active_category === "references" ? "secondary" : "ghost"}
+          className={cn("w-full justify-start", selected_reference_ids.length > 0 && "font-medium")}
+          onClick={() => set_active_category("references")}
+        >
+          <User className="size-4 mr-2" />
+          Face References
+          {selected_reference_ids.length > 0 && (
+            <Badge variant="secondary" className="ml-auto text-xs h-5 min-w-5 justify-center">
+              {selected_reference_ids.length}
+            </Badge>
+          )}
+        </Button>
         <Button
           variant={active_category === "analyze" ? "secondary" : "ghost"}
           className="w-full justify-start"

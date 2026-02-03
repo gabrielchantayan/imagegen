@@ -14,24 +14,36 @@ type RawGeneration = {
   api_response_text: string | null;
   created_at: string;
   completed_at: string | null;
+  reference_photo_ids: string | null;
+  used_fallback: number;
 };
 
 const parse_generation = (row: RawGeneration): Generation => {
   return {
     ...row,
     prompt_json: JSON.parse(row.prompt_json),
+    reference_photo_ids: row.reference_photo_ids ? JSON.parse(row.reference_photo_ids) : null,
+    used_fallback: row.used_fallback === 1,
   };
 };
 
-export const create_generation = (prompt_json: Record<string, unknown>): Generation => {
+export const create_generation = (
+  prompt_json: Record<string, unknown>,
+  reference_photo_ids?: string[]
+): Generation => {
   const db = get_db();
   const id = generate_id();
   const timestamp = now();
 
   db.prepare(`
-    INSERT INTO generations (id, prompt_json, status, created_at)
-    VALUES (?, ?, 'pending', ?)
-  `).run(id, JSON.stringify(prompt_json), timestamp);
+    INSERT INTO generations (id, prompt_json, status, created_at, reference_photo_ids)
+    VALUES (?, ?, 'pending', ?, ?)
+  `).run(
+    id,
+    JSON.stringify(prompt_json),
+    timestamp,
+    reference_photo_ids && reference_photo_ids.length > 0 ? JSON.stringify(reference_photo_ids) : null
+  );
 
   return get_generation(id)!;
 };
@@ -48,6 +60,7 @@ export type UpdateGenerationInput = {
   error_message?: string;
   api_response_text?: string;
   completed_at?: boolean;
+  used_fallback?: boolean;
 };
 
 export const update_generation = (id: string, input: UpdateGenerationInput): Generation | null => {
@@ -74,6 +87,10 @@ export const update_generation = (id: string, input: UpdateGenerationInput): Gen
   if (input.completed_at) {
     updates.push("completed_at = ?");
     values.push(now());
+  }
+  if (input.used_fallback !== undefined) {
+    updates.push("used_fallback = ?");
+    values.push(input.used_fallback ? 1 : 0);
   }
 
   if (updates.length === 0) return get_generation(id);

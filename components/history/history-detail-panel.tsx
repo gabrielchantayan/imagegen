@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Star, Trash2, Download, Copy, ImageIcon, Heart, Archive, Plus, X, Tag, Clipboard } from "lucide-react";
+import { Star, Trash2, Download, Copy, ImageIcon, Heart, Archive, Plus, X, Tag, Clipboard, User, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -237,6 +237,12 @@ const BatchState = ({
   );
 };
 
+type ReferencePhoto = {
+  id: string;
+  name: string;
+  image_path: string;
+};
+
 // Single item state - shows full detail view
 const SingleState = ({
   item,
@@ -258,6 +264,27 @@ const SingleState = ({
   const [show_delete_dialog, set_show_delete_dialog] = useState(false);
   const [new_tag, set_new_tag] = useState("");
   const [is_adding_tag, set_is_adding_tag] = useState(false);
+  const [references, set_references] = useState<ReferencePhoto[]>([]);
+
+  // Fetch reference photos if this generation used any
+  useEffect(() => {
+    if (!item.reference_photo_ids || item.reference_photo_ids.length === 0) {
+      set_references([]);
+      return;
+    }
+
+    // Fetch all references and filter to the ones used
+    fetch("/api/references")
+      .then((res) => res.json())
+      .then((data) => {
+        const all_refs = data.references as ReferencePhoto[];
+        const used_refs = all_refs.filter((r) =>
+          item.reference_photo_ids?.includes(r.id)
+        );
+        set_references(used_refs);
+      })
+      .catch(() => set_references([]));
+  }, [item.reference_photo_ids]);
 
   const handle_use_prompt = () => {
     try {
@@ -379,10 +406,46 @@ const SingleState = ({
                 minute: "2-digit",
               })}
             </span>
-            <span className="text-xs text-muted-foreground">
-              {item.status}
-            </span>
+            <div className="flex items-center gap-2">
+              {item.used_fallback && (
+                <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">
+                  <RefreshCw className="size-3 mr-1" />
+                  Face swapped
+                </Badge>
+              )}
+              <span className="text-xs text-muted-foreground">
+                {item.status}
+              </span>
+            </div>
           </div>
+
+          {/* Reference Photos Section */}
+          {references.length > 0 && (
+            <div className="mt-3 mb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <User className="size-4 text-muted-foreground" />
+                <span className="text-sm font-medium">
+                  Reference{references.length !== 1 ? "s" : ""} used
+                </span>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {references.map((ref) => (
+                  <div
+                    key={ref.id}
+                    className="relative w-12 h-12 rounded-lg overflow-hidden border"
+                    title={ref.name}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={ref.image_path}
+                      alt={ref.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Tags Section */}
           <div className="flex flex-wrap gap-1.5 mt-3">

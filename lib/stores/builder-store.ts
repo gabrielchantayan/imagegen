@@ -33,6 +33,9 @@ type BuilderState = {
   // Shared selections (scene, background, camera, bans)
   shared_selections: Record<string, Component[]>;
 
+  // Reference photo selection
+  selected_reference_ids: string[];
+
   // Active category in UI
   active_category: string;
 
@@ -69,6 +72,13 @@ type BuilderState = {
   set_last_generated_image: (path: string | null) => void;
   set_queue_position: (position: number | null) => void;
   set_generation_error: (error: string | null) => void;
+
+  // Reference actions
+  select_reference: (id: string) => void;
+  deselect_reference: (id: string) => void;
+  clear_references: () => void;
+  set_references: (ids: string[]) => void;
+  add_references: (ids: string[]) => void;
 };
 
 const SHARED_CATEGORIES = ["scenes", "backgrounds", "camera", "ban_lists"];
@@ -520,6 +530,7 @@ export const use_builder_store = create<BuilderState>()(
         subjects: [initial_subject],
         active_subject_id: initial_subject.id,
         shared_selections: {},
+        selected_reference_ids: [],
         active_category: "characters",
         composed_prompt: null,
         settings: DEFAULT_SETTINGS,
@@ -716,6 +727,7 @@ export const use_builder_store = create<BuilderState>()(
             subjects: [new_subject],
             active_subject_id: new_subject.id,
             shared_selections: {},
+            selected_reference_ids: [],
             composed_prompt: null,
             conflicts: [],
             conflict_resolutions: {},
@@ -747,14 +759,55 @@ export const use_builder_store = create<BuilderState>()(
         set_generation_error: (error) => {
           set({ generation_error: error });
         },
+
+        // Reference actions
+        select_reference: (id) => {
+          set((state) => {
+            if (state.selected_reference_ids.includes(id)) {
+              return state;
+            }
+            return {
+              selected_reference_ids: [...state.selected_reference_ids, id],
+            };
+          });
+        },
+
+        deselect_reference: (id) => {
+          set((state) => ({
+            selected_reference_ids: state.selected_reference_ids.filter(
+              (ref_id) => ref_id !== id,
+            ),
+          }));
+        },
+
+        clear_references: () => {
+          set({ selected_reference_ids: [] });
+        },
+
+        set_references: (ids) => {
+          set({ selected_reference_ids: ids });
+        },
+
+        add_references: (ids) => {
+          set((state) => {
+            const new_ids = ids.filter(
+              (id) => !state.selected_reference_ids.includes(id),
+            );
+            if (new_ids.length === 0) return state;
+            return {
+              selected_reference_ids: [...state.selected_reference_ids, ...new_ids],
+            };
+          });
+        },
       };
     },
     {
       name: "prompt-builder-storage",
-      version: 2,
+      version: 3,
       partialize: (state) => ({
         subjects: state.subjects,
         shared_selections: state.shared_selections,
+        selected_reference_ids: state.selected_reference_ids,
         settings: state.settings,
         active_subject_id: state.active_subject_id,
         conflict_resolutions: state.conflict_resolutions,
@@ -795,6 +848,13 @@ export const use_builder_store = create<BuilderState>()(
           // Initialize conflict_resolutions if not present
           if (!state.conflict_resolutions) {
             state.conflict_resolutions = {};
+          }
+        }
+
+        if (version < 3) {
+          // Initialize selected_reference_ids if not present
+          if (!state.selected_reference_ids) {
+            state.selected_reference_ids = [];
           }
         }
 

@@ -49,6 +49,7 @@ export const use_generation = (generation_id: string | null) => {
 export type SubmitGenerationOptions = {
   aspect_ratio?: string;
   count?: number;
+  reference_photo_ids?: string[];
 };
 
 export type SubmitGenerationResponse = {
@@ -64,7 +65,11 @@ export const submit_generation = async (
   const res = await fetch("/api/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt_json, options }),
+    body: JSON.stringify({
+      prompt_json,
+      options,
+      reference_photo_ids: options?.reference_photo_ids,
+    }),
   });
 
   if (!res.ok) {

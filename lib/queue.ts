@@ -12,6 +12,7 @@ type RawQueueItem = {
   created_at: string;
   started_at: string | null;
   completed_at: string | null;
+  reference_photo_ids: string | null;
 };
 
 const parse_queue_item = (row: RawQueueItem): QueueItem & { generation_id: string | null } => {
@@ -19,21 +20,29 @@ const parse_queue_item = (row: RawQueueItem): QueueItem & { generation_id: strin
     ...row,
     prompt_json: JSON.parse(row.prompt_json),
     generation_id: row.generation_id,
+    reference_photo_ids: row.reference_photo_ids ? JSON.parse(row.reference_photo_ids) : null,
   };
 };
 
 export const enqueue = (
   prompt_json: Record<string, unknown>,
-  generation_id: string
+  generation_id: string,
+  reference_photo_ids?: string[]
 ): QueueItem & { generation_id: string } => {
   const db = get_db();
   const id = generate_id();
   const timestamp = now();
 
   db.prepare(`
-    INSERT INTO generation_queue (id, prompt_json, generation_id, status, created_at)
-    VALUES (?, ?, ?, 'queued', ?)
-  `).run(id, JSON.stringify(prompt_json), generation_id, timestamp);
+    INSERT INTO generation_queue (id, prompt_json, generation_id, status, created_at, reference_photo_ids)
+    VALUES (?, ?, ?, 'queued', ?, ?)
+  `).run(
+    id,
+    JSON.stringify(prompt_json),
+    generation_id,
+    timestamp,
+    reference_photo_ids && reference_photo_ids.length > 0 ? JSON.stringify(reference_photo_ids) : null
+  );
 
   return get_queue_item(id)! as QueueItem & { generation_id: string };
 };
