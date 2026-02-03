@@ -225,26 +225,55 @@ export const InlineJsonView = ({
 }: InlineJsonViewProps) => {
   // Build a map of field paths to conflicts for quick lookup
   const conflict_map = new Map<string, ConflictInfo>();
+  const is_multi_subject = "subjects" in (data || {});
+
   for (const conflict of conflicts) {
-    // Convert conflict.id to JSON path format
-    // Formats: "body.path.to.field", "wardrobe.path", "pose.path", "shared.category.path"
-    const parts = conflict.id.split(".");
+    // Conflict ID format: "prefix.path.to.field"
+    // e.g. "subject_0.identity.age" or "shared.scenes.description"
+    
+    // Handle Subject conflicts
+    if (conflict.id.startsWith("subject_")) {
+      const first_dot = conflict.id.indexOf(".");
+      if (first_dot === -1) continue;
 
-    if (parts.length >= 2) {
-      const [section, ...rest] = parts;
-      const field_path = rest.join(".");
+      const prefix = conflict.id.substring(0, first_dot); // "subject_0"
+      const path = conflict.id.substring(first_dot + 1);  // "identity.age"
+      
+      const subject_idx = parseInt(prefix.split("_")[1]);
 
-      if (section === "body") {
-        // body.* → subject.*
-        conflict_map.set(`subject.${field_path}`, conflict);
-      } else if (section === "wardrobe" || section === "pose") {
-        // wardrobe.*, pose.* → same path
-        conflict_map.set(`${section}.${field_path}`, conflict);
-      } else if (section === "shared" && parts.length >= 3) {
-        // shared.category.path → category.path (with plural→singular mapping)
-        const [, category, ...field_parts] = parts;
-        const mapped_key = category.replace(/s$/, "");
-        conflict_map.set(`${mapped_key}.${field_parts.join(".")}`, conflict);
+      if (is_multi_subject) {
+        conflict_map.set(`subjects[${subject_idx}].${path}`, conflict);
+      } else {
+        // Single subject maps to "subject.path"
+        conflict_map.set(`subject.${path}`, conflict);
+      }
+      continue;
+    }
+
+    // Handle Shared conflicts
+    if (conflict.id.startsWith("shared.")) {
+      const parts = conflict.id.split(".");
+      if (parts.length < 3) continue;
+
+      const category = parts[1]; // "scenes", "backgrounds", "camera", "ban_lists"
+      const path = parts.slice(2).join("."); // "description", "negative_prompt"
+
+      if (category === "scenes" || category === "backgrounds") {
+        conflict_map.set(`scene.${path}`, conflict);
+      } else if (category === "camera") {
+        conflict_map.set(`camera.${path}`, conflict);
+      } else if (category === "ban_lists") {
+        // ban_lists usually maps to negative_prompt at root
+        // The path from store might be "negative_prompt" already due to normalization
+        if (path === "negative_prompt") {
+           conflict_map.set("negative_prompt", conflict);
+        } else {
+           // If it's something else, map loosely?
+           conflict_map.set(path, conflict);
+        }
+      } else {
+        // Fallback for generic shared
+        conflict_map.set(path, conflict);
       }
     }
   }

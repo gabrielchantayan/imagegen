@@ -3,6 +3,11 @@ import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
 
 import type { Component } from "@/lib/types/database";
+import type { StandardPrompt } from "@/lib/types/prompt-schema";
+import { 
+  normalize_subject_component, 
+  normalize_shared_component 
+} from "@/lib/prompt-normalizer";
 
 type ResolutionStrategy = "use_first" | "use_last" | "combine";
 
@@ -86,6 +91,18 @@ type BuilderState = {
 
 const SHARED_CATEGORIES = ["scenes", "backgrounds", "camera", "ban_lists"];
 
+// All categories that belong to a subject
+const SUBJECT_CATEGORIES = [
+  "characters",
+  "physical_traits",
+  "jewelry",
+  "wardrobe",
+  "wardrobe_tops",
+  "wardrobe_bottoms",
+  "wardrobe_footwear",
+  "poses"
+];
+
 const generate_subject_id = (): string => {
   return `subject-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 };
@@ -105,42 +122,6 @@ const DEFAULT_SETTINGS: GenerationSettings = {
   google_search: false,
   show_inline_references: true,
   show_face_references: true,
-};
-
-// Categories that contribute to body/subject
-const BODY_CATEGORIES = ["characters", "physical_traits", "jewelry"];
-
-// Mapping for wardrobe piece categories to their field
-const WARDROBE_PIECE_MAPPING: Record<string, string> = {
-  wardrobe_tops: "top",
-  wardrobe_bottoms: "bottom",
-  wardrobe_footwear: "footwear",
-};
-
-// Mapping from category ID to prompt key
-const SHARED_CATEGORY_MAPPING: Record<string, string> = {
-  scenes: "scene",
-  backgrounds: "background",
-  camera: "camera",
-  ban_lists: "ban",
-};
-
-// Hardcoded defaults
-// const DEFAULT_LOOK = {
-//   texture: "modern phone camera; mild JPEG artifacts",
-//   color: "perfect white balance",
-// };
-
-const DEFAULT_LOOK = {};
-
-const DEFAULT_STYLE = {
-  authenticity: "imperfect candid moment",
-};
-
-type SubjectSections = {
-  body: Record<string, unknown>;
-  wardrobe: Record<string, unknown>;
-  pose: Record<string, unknown>;
 };
 
 // Helper to combine string values intelligently
@@ -184,9 +165,22 @@ const combine_objects = (
 const apply_resolution = (
   values: { value: unknown; source: string }[],
   resolution: ResolutionStrategy,
+  is_array_merge = false
 ): unknown => {
   if (values.length === 0) return undefined;
   if (values.length === 1) return values[0].value;
+
+  // If this is an array field (like accessories), always combine
+  if (is_array_merge) {
+    const all_items: unknown[] = [];
+    for (const v of values) {
+      if (Array.isArray(v.value)) all_items.push(...v.value);
+      else if (v.value) all_items.push(v.value);
+    }
+    // De-duplicate primitives
+    const unique = [...new Set(all_items)];
+    return unique;
+  }
 
   switch (resolution) {
     case "use_first":
@@ -284,7 +278,10 @@ const resolve_fields_deep = (
     const conflict_id = `${section_prefix}.${path}`;
     const resolution = resolutions[conflict_id] ?? "use_last";
 
-    // Detect conflicts (more than one unique value)
+    // Check if this is a field that should always merge arrays (e.g. accessories)
+    const is_array_merge = path.endsWith("accessories") || path.endsWith("negative_prompt");
+
+    // Detect conflicts (more than one unique value) - skip conflict for array merge types
     const unique_values = values.filter(
       (v, i, arr) =>
         arr.findIndex(
@@ -292,7 +289,7 @@ const resolve_fields_deep = (
         ) === i,
     );
 
-    if (unique_values.length > 1) {
+    if (unique_values.length > 1 && !is_array_merge) {
       const resolved_value = apply_resolution(values, resolution);
       conflicts.push({
         id: conflict_id,
@@ -305,21 +302,13 @@ const resolve_fields_deep = (
       });
       set_nested(result, path, resolved_value);
     } else {
-      set_nested(result, path, values[values.length - 1].value);
+      // No conflict or it's an array merge
+      const final_value = apply_resolution(values, resolution, is_array_merge);
+      set_nested(result, path, final_value);
     }
   }
 
   return result;
-
-};
-
-// Keep shallow version for backwards compatibility
-const collect_field_values = (
-  fields: FieldValues,
-  data: Record<string, unknown>,
-  source: string,
-): void => {
-  collect_field_values_deep(fields, data, source, "");
 };
 
 const resolve_fields = (
@@ -331,74 +320,35 @@ const resolve_fields = (
   return resolve_fields_deep(fields, resolutions, section_prefix, conflicts);
 };
 
-const compose_subject_sections = (
+// Compose a single subject from all its component selections
+const compose_subject = (
   selections: Record<string, Component[]>,
   resolutions: Record<string, ResolutionStrategy>,
   conflicts: ConflictInfo[],
-): SubjectSections => {
-  const body_fields: FieldValues = new Map();
-  const wardrobe_fields: FieldValues = new Map();
-  const pose_fields: FieldValues = new Map();
+  subject_idx: number
+): Record<string, unknown> => {
+  const subject_fields: FieldValues = new Map();
 
-  // Process body categories (characters, physical_traits, jewelry)
-  for (const category_id of BODY_CATEGORIES) {
+  // Iterate all subject-related categories
+  for (const category_id of SUBJECT_CATEGORIES) {
     const components = selections[category_id] ?? [];
+    
     for (const component of components) {
-      collect_field_values(body_fields, component.data, component.name);
+      // 1. Normalize the component data into StandardPrompt subject structure
+      const normalized_data = normalize_subject_component(component.data, category_id);
+      
+      // 2. Collect the fields for merging
+      collect_field_values_deep(subject_fields, normalized_data, component.name);
     }
   }
 
-  // Process wardrobe category (full wardrobe)
-  const wardrobe_components = selections["wardrobe"] ?? [];
-  for (const component of wardrobe_components) {
-    collect_field_values(wardrobe_fields, component.data, component.name);
-  }
-
-  // Process wardrobe piece categories (override specific fields)
-  for (const [category_id, field_name] of Object.entries(
-    WARDROBE_PIECE_MAPPING,
-  )) {
-    const components = selections[category_id] ?? [];
-    for (const component of components) {
-      // If component has the specific field, use it; otherwise merge all data
-      if (field_name in component.data) {
-        collect_field_values(
-          wardrobe_fields,
-          { [field_name]: component.data[field_name] },
-          component.name,
-        );
-
-        // For bottoms, also include belt if present
-        if (category_id === "wardrobe_bottoms" && "belt" in component.data) {
-          collect_field_values(
-            wardrobe_fields,
-            { belt: component.data["belt"] },
-            component.name,
-          );
-        }
-      } else {
-        collect_field_values(wardrobe_fields, component.data, component.name);
-      }
-    }
-  }
-
-  // Process poses category
-  const pose_components = selections["poses"] ?? [];
-  for (const component of pose_components) {
-    collect_field_values(pose_fields, component.data, component.name);
-  }
-
-  // Resolve all fields with their resolutions
-  const body = resolve_fields(body_fields, resolutions, "body", conflicts);
-  const wardrobe = resolve_fields(
-    wardrobe_fields,
-    resolutions,
-    "wardrobe",
-    conflicts,
+  // 3. Resolve all fields into a single nested object
+  return resolve_fields(
+    subject_fields, 
+    resolutions, 
+    `subject_${subject_idx}`, 
+    conflicts
   );
-  const pose = resolve_fields(pose_fields, resolutions, "pose", conflicts);
-
-  return { body, wardrobe, pose };
 };
 
 const compose_prompt = (
@@ -407,108 +357,78 @@ const compose_prompt = (
   resolutions: Record<string, ResolutionStrategy>,
 ): { prompt: Record<string, unknown>; conflicts: ConflictInfo[] } => {
   const conflicts: ConflictInfo[] = [];
-  const prompt: Record<string, unknown> = {};
+  const prompt: Record<string, unknown> = {}; // Start generic, will verify against schema later
 
-  // Build subject sections
-  const subject_sections: SubjectSections[] = [];
+  // 1. Compose Subjects
+  const composed_subjects = subjects
+    .map((s, idx) => compose_subject(s.selections, resolutions, conflicts, idx))
+    .filter(s => Object.keys(s).length > 0);
 
-  for (const subject of subjects) {
-    const sections = compose_subject_sections(
-      subject.selections,
-      resolutions,
-      conflicts,
-    );
-    if (
-      Object.keys(sections.body).length > 0 ||
-      Object.keys(sections.wardrobe).length > 0 ||
-      Object.keys(sections.pose).length > 0
-    ) {
-      subject_sections.push(sections);
-    }
+  if (composed_subjects.length === 1) {
+    prompt.subject = composed_subjects[0];
+  } else if (composed_subjects.length > 1) {
+    prompt.subjects = composed_subjects;
   }
 
-  // Set subject(s) based on count
-  if (subject_sections.length === 1) {
-    // Single subject: body goes to "subject", wardrobe and pose are top-level
-    const { body, wardrobe, pose } = subject_sections[0];
-    if (Object.keys(body).length > 0) {
-      prompt.subject = body;
-    }
-    if (Object.keys(wardrobe).length > 0) {
-      prompt.wardrobe = wardrobe;
-    }
-    if (Object.keys(pose).length > 0) {
-      prompt.pose = pose;
-    }
-  } else if (subject_sections.length > 1) {
-    // Multiple subjects: each has nested body, wardrobe, pose
-    prompt.subjects = subject_sections.map(({ body, wardrobe, pose }) => {
-      const subject_obj: Record<string, unknown> = {};
-      if (Object.keys(body).length > 0) {
-        subject_obj.body = body;
-      }
-      if (Object.keys(wardrobe).length > 0) {
-        subject_obj.wardrobe = wardrobe;
-      }
-      if (Object.keys(pose).length > 0) {
-        subject_obj.pose = pose;
-      }
-      return subject_obj;
-    });
-  }
-
-  // Apply shared selections - merge multiple components per category
+  // 2. Compose Shared Components
   for (const [category_id, components] of Object.entries(shared_selections)) {
     if (!components || components.length === 0) continue;
 
-    const prompt_key = SHARED_CATEGORY_MAPPING[category_id] || category_id;
+    // Normalize each shared component
+    const normalized_components = components.map(c => ({
+       ...c,
+       data: normalize_shared_component(c.data, category_id)
+    }));
 
-    if (components.length === 1) {
-      const component = components[0];
-      if (
-        typeof component.data === "object" &&
-        !Array.isArray(component.data)
-      ) {
-        const data_keys = Object.keys(component.data);
-        if (
-          data_keys.length === 1 &&
-          typeof component.data[data_keys[0]] === "string"
-        ) {
-          prompt[prompt_key] = component.data[data_keys[0]];
-        } else {
-          prompt[prompt_key] = component.data;
-        }
+    if (normalized_components.length === 1) {
+      const data = normalized_components[0].data;
+      // Merge into root (e.g. { scene: ... } or { camera: ... })
+      // Special handling for 'negative_prompt' which might come from 'ban_lists'
+      if ("negative_prompt" in data) {
+         prompt.negative_prompt = data.negative_prompt;
+      } else if (category_id === "scenes" || category_id === "backgrounds") {
+         // Merge into "scene" key
+         if (!prompt.scene) prompt.scene = {};
+         Object.assign(prompt.scene as object, data);
+      } else if (category_id === "camera") {
+         if (!prompt.camera) prompt.camera = {};
+         Object.assign(prompt.camera as object, data);
       } else {
-        prompt[prompt_key] = component.data;
+         // Fallback
+         Object.assign(prompt, data);
       }
     } else {
-      // Multiple components - collect and resolve fields
+      // Resolve conflicts for shared components
       const shared_fields: FieldValues = new Map();
-      for (const component of components) {
-        if (
-          typeof component.data === "object" &&
-          !Array.isArray(component.data)
-        ) {
-          collect_field_values(shared_fields, component.data, component.name);
-        }
+      for (const c of normalized_components) {
+        collect_field_values_deep(shared_fields, c.data, c.name);
       }
+      
       const resolved = resolve_fields(
         shared_fields,
         resolutions,
         `shared.${category_id}`,
-        conflicts,
+        conflicts
       );
-      if (Object.keys(resolved).length > 0) {
-        prompt[prompt_key] = resolved;
+
+      // Merge resolved data into prompt
+       if ("negative_prompt" in resolved) {
+         prompt.negative_prompt = resolved.negative_prompt;
+      } else if (category_id === "scenes" || category_id === "backgrounds") {
+         if (!prompt.scene) prompt.scene = {};
+         // Deep merge ideally, but Object.assign ok for now as resolved is already merged
+         Object.assign(prompt.scene as object, resolved);
+      } else if (category_id === "camera") {
+         if (!prompt.camera) prompt.camera = {};
+         Object.assign(prompt.camera as object, resolved);
+      } else {
+         Object.assign(prompt, resolved);
       }
     }
   }
 
-  // Add hardcoded defaults (only if we have any subject data)
-  if (subject_sections.length > 0) {
-    prompt.look = DEFAULT_LOOK;
-    prompt.style = DEFAULT_STYLE;
-  }
+  // defaults look/style logic removed as it's not part of the standard schema
+  // and can be handled by the user selecting components
 
   return { prompt, conflicts };
 };
