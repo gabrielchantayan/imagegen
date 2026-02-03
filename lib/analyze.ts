@@ -16,41 +16,48 @@ const convert_to_supported_format = async (
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
-export const ANALYSIS_PROMPT = `You are an expert image analyst. Analyze the provided image and extract a detailed JSON description following this exact structure:
+export const ANALYSIS_PROMPT = `You are an expert image analyst. Analyze the provided image and extract a detailed JSON description following this exact structure.
+
+IMPORTANT: Always return arrays, even for single items. If there are multiple people, return multiple subjects. If there are layered clothing items, return multiple tops/bottoms.
 
 {
-  "subject": {
-    "description": "Overall description of the main subject",
-    "ethnicity": "Observed or inferred ethnicity",
-    "hair": "Hair description (color, style, length)",
-    "skin": "Skin tone description",
-    "body": "Body type description",
-    "face": "Facial features description"
-  },
+  "subjects": [
+    {
+      "description": "Overall description of this subject",
+      "ethnicity": "Observed or inferred ethnicity",
+      "hair": "Hair description (color, style, length)",
+      "skin": "Skin tone description",
+      "body": "Body type description",
+      "face": "Facial features description"
+    }
+  ],
   "wardrobe": {
-    "top": "Upper body clothing description",
-    "bottom": "Lower body clothing description",
-    "footwear": "Footwear description",
-    "accessories": "Any accessories worn"
+    "tops": ["Upper body clothing item 1", "Upper body clothing item 2 (if layered)"],
+    "bottoms": ["Lower body clothing description"],
+    "footwear": ["Footwear description"]
   },
-  "jewelry": {
-    "description": "Jewelry items worn"
-  },
-  "pose": {
-    "body": "Body position description",
-    "hands": "Hand position description",
-    "expression": "Facial expression"
-  },
-  "scene": "Overall scene description",
-  "background": {
-    "setting": "Background environment",
-    "props": ["List of visible props"]
-  },
-  "camera": {
-    "angle": "Camera angle (eye level, low angle, etc.)",
-    "framing": "Shot framing (close-up, medium, full body)",
-    "style": "Photography style notes"
-  }
+  "jewelry": ["Jewelry item 1", "Jewelry item 2"],
+  "poses": [
+    {
+      "body": "Body position description",
+      "hands": "Hand position description",
+      "expression": "Facial expression"
+    }
+  ],
+  "scenes": ["Overall scene description"],
+  "backgrounds": [
+    {
+      "setting": "Background environment",
+      "props": ["List of visible props"]
+    }
+  ],
+  "cameras": [
+    {
+      "angle": "Camera angle (eye level, low angle, etc.)",
+      "framing": "Shot framing (close-up, medium, full body)",
+      "style": "Photography style notes"
+    }
+  ]
 }
 
 Be detailed and specific. If something is not visible or applicable, omit that field. Focus on factual observation, not interpretation.`;
