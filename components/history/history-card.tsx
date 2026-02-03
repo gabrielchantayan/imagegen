@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Star, Check, User, RefreshCw } from "lucide-react";
+import { Star, Check, User, RefreshCw, AlertTriangle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { GenerationWithFavorite } from "@/lib/types/database";
@@ -111,12 +111,20 @@ export const HistoryCard = ({
               {item.reference_photo_ids.length}
             </span>
           )}
-          {item.used_fallback && (
+          {item.used_fallback && !item.face_swap_failed && (
             <span
               className="flex items-center bg-amber-500/70 rounded px-1 py-0.5"
               title="Face swapped (fallback)"
             >
               <RefreshCw className="size-3" />
+            </span>
+          )}
+          {item.face_swap_failed && (
+            <span
+              className="flex items-center bg-red-500/70 rounded px-1 py-0.5"
+              title="Face swap failed"
+            >
+              <AlertTriangle className="size-3" />
             </span>
           )}
         </div>

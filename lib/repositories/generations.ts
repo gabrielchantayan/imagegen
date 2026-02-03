@@ -10,6 +10,7 @@ type RawGeneration = {
   id: string;
   prompt_json: string;
   image_path: string | null;
+  pre_swap_image_path: string | null;
   status: GenerationStatus;
   error_message: string | null;
   api_response_text: string | null;
@@ -18,6 +19,7 @@ type RawGeneration = {
   reference_photo_ids: string | null;
   inline_reference_paths: string | null;
   used_fallback: number;
+  face_swap_failed: number;
   components_used: string | null;
 };
 
@@ -28,6 +30,7 @@ const parse_generation = (row: RawGeneration): Generation => {
     reference_photo_ids: row.reference_photo_ids ? JSON.parse(row.reference_photo_ids) : null,
     inline_reference_paths: row.inline_reference_paths ? JSON.parse(row.inline_reference_paths) : null,
     used_fallback: row.used_fallback === 1,
+    face_swap_failed: row.face_swap_failed === 1,
     components_used: row.components_used ? JSON.parse(row.components_used) : null,
   };
 };
@@ -66,10 +69,12 @@ export const get_generation = (id: string): Generation | null => {
 export type UpdateGenerationInput = {
   status?: GenerationStatus;
   image_path?: string;
+  pre_swap_image_path?: string;
   error_message?: string;
   api_response_text?: string;
   completed_at?: boolean;
   used_fallback?: boolean;
+  face_swap_failed?: boolean;
 };
 
 export const update_generation = (id: string, input: UpdateGenerationInput): Generation | null => {
@@ -78,10 +83,12 @@ export const update_generation = (id: string, input: UpdateGenerationInput): Gen
   const { sql_parts, values } = build_update_query(input, {
     status: "status",
     image_path: "image_path",
+    pre_swap_image_path: "pre_swap_image_path",
     error_message: "error_message",
     api_response_text: "api_response_text",
     completed_at: { column: "completed_at", transform: (v) => v ? now() : null },
     used_fallback: { column: "used_fallback", transform: (v) => v ? 1 : 0 },
+    face_swap_failed: { column: "face_swap_failed", transform: (v) => v ? 1 : 0 },
   });
 
   if (sql_parts.length === 0) return get_generation(id);
@@ -301,6 +308,15 @@ export const delete_generation = async (id: string): Promise<boolean> => {
 
   if (generation.image_path) {
     const file_path = path.join(process.cwd(), "public", generation.image_path);
+    try {
+      await unlink(file_path);
+    } catch {
+      // File may not exist, continue
+    }
+  }
+
+  if (generation.pre_swap_image_path) {
+    const file_path = path.join(process.cwd(), "public", generation.pre_swap_image_path);
     try {
       await unlink(file_path);
     } catch {

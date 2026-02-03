@@ -98,6 +98,8 @@ export const process_queue = async (): Promise<void> => {
         });
 
         let used_fallback = false;
+        let pre_swap_image_path: string | undefined;
+        let face_swap_failed = false;
 
         // Fallback: if generation with references failed, try without and then face-swap
         if (!result.success && reference_images.length > 0) {
@@ -121,6 +123,10 @@ export const process_queue = async (): Promise<void> => {
             );
 
             if (swap_result.success && swap_result.image) {
+              // Save the pre-swap image before using the swapped one
+              pre_swap_image_path = await save_image(base_result.images[0], base_result.mime_type!);
+              console.log("[generation-processor] Face swap succeeded, saved pre-swap image:", pre_swap_image_path);
+
               result = {
                 success: true,
                 images: [swap_result.image],
@@ -130,8 +136,10 @@ export const process_queue = async (): Promise<void> => {
               used_fallback = true;
             } else {
               // Face swap failed, use base image anyway
+              console.log("[generation-processor] Face swap failed, using base image");
               result = base_result;
               used_fallback = true;
+              face_swap_failed = true;
             }
           }
         }
@@ -140,12 +148,20 @@ export const process_queue = async (): Promise<void> => {
           const image_path = await save_image(result.images[0], result.mime_type!);
 
           if (item.generation_id) {
+            console.log("[generation-processor] Saving generation:", {
+              id: item.generation_id,
+              used_fallback,
+              face_swap_failed,
+              pre_swap_image_path: pre_swap_image_path || "none",
+            });
             update_generation(item.generation_id, {
               status: "completed",
               image_path,
+              pre_swap_image_path,
               api_response_text: result.text_response,
               completed_at: true,
               used_fallback,
+              face_swap_failed,
             });
 
             // Extract and store tags for the generation

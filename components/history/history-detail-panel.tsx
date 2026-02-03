@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
-import { Star, Trash2, Download, Copy, ImageIcon, Heart, Archive, Plus, X, Clipboard, User, RefreshCw } from "lucide-react";
+import { Star, Trash2, Download, Copy, ImageIcon, Heart, Archive, Plus, X, Clipboard, User, RefreshCw, AlertTriangle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -561,10 +561,16 @@ const SingleState = ({
               })}
             </span>
             <div className="flex items-center gap-2">
-              {item.used_fallback && (
+              {item.used_fallback && !item.face_swap_failed && (
                 <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">
                   <RefreshCw className="size-3 mr-1" />
                   Face swapped
+                </Badge>
+              )}
+              {item.face_swap_failed && (
+                <Badge variant="outline" className="text-red-600 border-red-300 bg-red-50">
+                  <AlertTriangle className="size-3 mr-1" />
+                  Face swap failed
                 </Badge>
               )}
               <span className="text-xs text-muted-foreground">
@@ -598,6 +604,30 @@ const SingleState = ({
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Pre-swap Image Section */}
+          {item.pre_swap_image_path && (
+            <div className="mt-3 mb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <ImageIcon className="size-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Pre-swap image</span>
+              </div>
+              <a
+                href={item.pre_swap_image_path}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block relative w-24 h-32 rounded-lg overflow-hidden border hover:ring-2 hover:ring-primary transition-all"
+                title="View original image before face swap"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.pre_swap_image_path}
+                  alt="Pre-swap"
+                  className="w-full h-full object-cover"
+                />
+              </a>
             </div>
           )}
 

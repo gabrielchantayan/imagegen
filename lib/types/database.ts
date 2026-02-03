@@ -38,6 +38,7 @@ export type Generation = {
   id: string;
   prompt_json: Record<string, unknown>;
   image_path: string | null;
+  pre_swap_image_path: string | null;
   status: GenerationStatus;
   error_message: string | null;
   api_response_text: string | null;
@@ -46,6 +47,7 @@ export type Generation = {
   reference_photo_ids: string[] | null;
   inline_reference_paths: string[] | null;
   used_fallback: boolean;
+  face_swap_failed: boolean;
   components_used: ComponentUsed[] | null;
 };
 
