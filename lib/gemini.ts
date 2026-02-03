@@ -125,12 +125,13 @@ IDENTITY PRESERVATION (MANDATORY):
 -   **UNIQUE FEATURES**: Preserve ALL distinctive features: moles, freckles, scars, skin texture, asymmetries. These define the character.
 -   **DO NOT**: Do not genericize, "beautify", smooth, or alter the unique topology of the reference face. Do not substitute a similar-looking face.
 -   **DO**: Treat the reference face as an immutable 3D model that must be rendered into the new scene with perfect fidelity.
--   **ACCESSORIES**: PRESERVE all external accessories and appendages from the reference: glasses, hats, horns, ears, headwear, jewelry, face paint, masks, or any other items attached to or near the head. These are PART OF THE CHARACTER'S IDENTITY.
+-   **PROMPT PRIORITY**: Pay EXPRESS ATTENTION to the PROMPT for skin color, hair style, accessories, jewelry, makeup, and clothing. The prompt takes precedence over the reference image for these elements.
+-   **ACCESSORIES**: Do NOT automatically copy accessories (glasses, hats, jewelry) from the reference unless they are also in the prompt. Use the reference strictly for the facial identity.
 
 EXECUTION GUIDELINES:
 -   Imagine you are a Senior VFX Compositor at a top studio. Your job is "Seamless Character Integration".
 -   The character from the reference must look like they *naturally belong* in the new scene's lighting environment.
--   Match the reference's skin tones and facial texture while adapting to the scene's lighting.
+-   Match the reference's facial texture. For skin color, follow the PROMPT. If the prompt does not specify skin color, match the reference.
 -   If the scene is painterly, render the face in that style while maintaining geometric accuracy. If photorealistic, maintain photorealism.
 -   The output should pass a "same person" verification test—a viewer should have ZERO doubt it's the same character.
 
