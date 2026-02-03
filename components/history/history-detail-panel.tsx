@@ -23,45 +23,14 @@ import {
 import type { DetailPanelState } from "@/lib/stores/history-store";
 import type { GenerationWithFavorite } from "@/lib/types/database";
 import { use_builder_actions } from "@/lib/stores/builder-store";
+import {
+  CATEGORY_COLORS,
+  CATEGORY_LABELS,
+  DEFAULT_CATEGORY_COLOR,
+} from "@/lib/constants/categories";
 
-
-// Category color mapping for grouped tag display
-const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  characters: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
-  physical_traits: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
-  jewelry: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
-  wardrobe: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
-  wardrobe_tops: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
-  wardrobe_bottoms: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
-  wardrobe_footwear: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
-  poses: { bg: "bg-green-50", text: "text-green-700", border: "border-green-200" },
-  scenes: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
-  backgrounds: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
-  camera: { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200" },
-  ban_lists: { bg: "bg-red-50", text: "text-red-700", border: "border-red-200" },
-  subject: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
-  user: { bg: "bg-slate-50", text: "text-slate-700", border: "border-slate-200" },
-};
-
-const DEFAULT_COLOR = { bg: "bg-secondary", text: "text-secondary-foreground", border: "border-border" };
-
-// Category display names
-const CATEGORY_LABELS: Record<string, string> = {
-  characters: "Characters",
-  physical_traits: "Traits",
-  jewelry: "Jewelry",
-  wardrobe: "Wardrobe",
-  wardrobe_tops: "Tops",
-  wardrobe_bottoms: "Bottoms",
-  wardrobe_footwear: "Footwear",
-  poses: "Poses",
-  scenes: "Scenes",
-  backgrounds: "Backgrounds",
-  camera: "Camera",
-  ban_lists: "Ban List",
-  subject: "Subject",
-  user: "User Tags",
-};
+// Alias for backwards compatibility
+const DEFAULT_COLOR = DEFAULT_CATEGORY_COLOR;
 
 type GroupedTags = Record<string, { id: number; tag: string }[]>;
 

@@ -18,17 +18,21 @@ import { HistoryToolbar } from "./history-toolbar";
 import { HistoryFilterSidebar } from "./history-filter-sidebar";
 import { HistoryGrid } from "./history-grid";
 import { HistoryDetailPanel } from "./history-detail-panel";
-import { KeyboardShortcutsModal } from "./keyboard-shortcuts-modal";
+import { KeyboardShortcutsModal } from "@/components/ui/keyboard-shortcuts-modal";
 import { HistoryCompareModal } from "./history-compare-modal";
 import { use_history_store } from "@/lib/stores/history-store";
 import { use_history, toggle_favorite_api, delete_generation_api } from "@/lib/hooks/use-history";
 import { use_builder_store } from "@/lib/stores/builder-store";
 import { use_history_keyboard_shortcuts } from "@/lib/hooks/use-history-keyboard-shortcuts";
+import { use_history_url_sync } from "@/lib/hooks/use-history-url-sync";
 import type { GenerationWithFavorite } from "@/lib/types/database";
 
 export const HistoryLayout = () => {
   const router = useRouter();
   const load_prompt = use_builder_store((s) => s.load_prompt);
+
+  // Sync filters with URL params
+  use_history_url_sync();
 
   // History store state
   const sidebar_collapsed = use_history_store((s) => s.sidebar_collapsed);
@@ -239,7 +243,8 @@ export const HistoryLayout = () => {
       {/* Modals */}
       <KeyboardShortcutsModal
         open={shortcuts_modal_open}
-        on_close={() => set_shortcuts_modal_open(false)}
+        on_open_change={set_shortcuts_modal_open}
+        context="history"
       />
 
       {compare_items && (

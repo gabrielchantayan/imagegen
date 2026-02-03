@@ -7,6 +7,7 @@ import { jsonrepair } from "jsonrepair";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { InlineJsonView } from "./inline-json-view";
+import { ConflictResolutionPanel } from "./conflict-resolution-panel";
 import { use_builder_store } from "@/lib/stores/builder-store";
 import { format_prompt_json, parse_prompt_json } from "@/lib/prompt-composer";
 import { Code, Eye, Wrench } from "lucide-react";
@@ -105,13 +106,16 @@ export const JsonPreview = () => {
 
       {/* Visual view with inline conflict resolution */}
       {view_mode === "visual" && (
-        <div className="flex-1 overflow-hidden rounded-lg border bg-card shadow-sm">
-          <InlineJsonView
-            data={composed_prompt}
-            conflicts={conflicts}
-            resolutions={conflict_resolutions}
-            on_resolution_change={handle_resolution_change}
-          />
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden rounded-lg border bg-card shadow-sm">
+          <div className="flex-1 overflow-auto">
+            <InlineJsonView
+              data={composed_prompt}
+              conflicts={conflicts}
+              resolutions={conflict_resolutions}
+              on_resolution_change={handle_resolution_change}
+            />
+          </div>
+          <ConflictResolutionPanel />
         </div>
       )}
 

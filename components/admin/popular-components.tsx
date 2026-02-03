@@ -4,24 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 import type { PopularComponent } from "@/lib/repositories/stats";
+import { get_category_label } from "@/lib/constants/categories";
 
 type PopularComponentsProps = {
   components: PopularComponent[];
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  characters: "Character",
-  physical_traits: "Traits",
-  jewelry: "Jewelry",
-  wardrobe: "Wardrobe",
-  wardrobe_tops: "Top",
-  wardrobe_bottoms: "Bottom",
-  wardrobe_footwear: "Footwear",
-  poses: "Pose",
-  scenes: "Scene",
-  backgrounds: "Background",
-  camera: "Camera",
-  ban_lists: "Ban List",
 };
 
 export const PopularComponents = ({ components }: PopularComponentsProps) => {
@@ -58,7 +44,7 @@ export const PopularComponents = ({ components }: PopularComponentsProps) => {
                       {component.name}
                     </span>
                     <Badge variant="outline" className="text-[10px] px-1.5 h-5 font-normal">
-                      {CATEGORY_LABELS[component.category_id] || component.category_id}
+                      {get_category_label(component.category_id, true)}
                     </Badge>
                   </div>
                   <span className="text-xs text-muted-foreground font-mono">

@@ -6,9 +6,17 @@ import { SettingsDropdown } from "./settings-dropdown";
 import { use_builder_store } from "@/lib/stores/builder-store";
 import { submit_generation, type ComponentUsedInput } from "@/lib/hooks/use-generation";
 import { SavePromptModal } from "@/components/library/save-prompt-modal";
+import { SaveTemplateModal } from "@/components/builder/save-template-modal";
+import { KeyboardShortcutsModal } from "@/components/ui/keyboard-shortcuts-modal";
 import { use_keyboard_shortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-import { Sparkles, Save, Trash2, History, Library, BarChart3, Layers } from "lucide-react";
+import { Sparkles, Save, Trash2, History, Library, BarChart3, Layers, Keyboard, FileText, LayoutTemplate, ChevronDown } from "lucide-react";
 import type { Component } from "@/lib/types/database";
 
 // Helper to collect all selected components for tagging
@@ -79,8 +87,37 @@ const collect_inline_references = (
   return Array.from(paths);
 };
 
+// Helper to collect all component IDs (for templates)
+const collect_component_ids = (
+  subjects: { id: string; selections: Record<string, Component[]> }[]
+): string[] => {
+  const ids: string[] = [];
+  for (const subject of subjects) {
+    for (const category_components of Object.values(subject.selections)) {
+      for (const component of category_components) {
+        ids.push(component.id);
+      }
+    }
+  }
+  return ids;
+};
+
+const collect_shared_component_ids = (
+  shared_selections: Record<string, Component[]>
+): string[] => {
+  const ids: string[] = [];
+  for (const category_components of Object.values(shared_selections)) {
+    for (const component of category_components) {
+      ids.push(component.id);
+    }
+  }
+  return ids;
+};
+
 export const BuilderToolbar = () => {
   const [save_modal_open, set_save_modal_open] = useState(false);
+  const [save_template_modal_open, set_save_template_modal_open] = useState(false);
+  const [shortcuts_modal_open, set_shortcuts_modal_open] = useState(false);
 
   const clear_builder = use_builder_store((s) => s.clear_builder);
   const composed_prompt = use_builder_store((s) => s.composed_prompt);
@@ -172,6 +209,7 @@ export const BuilderToolbar = () => {
   use_keyboard_shortcuts({
     on_generate: handle_generate,
     on_save: handle_save_prompt,
+    on_show_shortcuts: () => set_shortcuts_modal_open(true),
   });
 
   useEffect(() => {
@@ -192,15 +230,26 @@ export const BuilderToolbar = () => {
           {is_generating ? "Generating..." : "Generate"}
         </Button>
 
-        <Button 
-          variant="outline" 
-          onClick={handle_save_prompt} 
-          disabled={!composed_prompt}
-          className="border-primary/20 hover:border-primary/50 text-foreground"
-        >
-          <Save className="size-4 mr-2" />
-          Save
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            disabled={!composed_prompt}
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border bg-background shadow-sm border-primary/20 hover:border-primary/50 text-foreground h-9 px-4 py-2"
+          >
+            <Save className="size-4" />
+            Save
+            <ChevronDown className="size-3" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem onClick={handle_save_prompt}>
+              <FileText className="size-4 mr-2" />
+              Save as Prompt
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => set_save_template_modal_open(true)}>
+              <LayoutTemplate className="size-4 mr-2" />
+              Save as Template
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <div className="h-6 w-px bg-border mx-2" />
 
@@ -262,6 +311,16 @@ export const BuilderToolbar = () => {
           </Link>
         </div>
 
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          onClick={() => set_shortcuts_modal_open(true)}
+          title="Keyboard shortcuts (⌘?)"
+        >
+          <Keyboard className="size-4" />
+        </Button>
+
         <SettingsDropdown />
       </div>
 
@@ -269,6 +328,19 @@ export const BuilderToolbar = () => {
         open={save_modal_open}
         on_open_change={set_save_modal_open}
         prompt_json={composed_prompt || {}}
+      />
+
+      <SaveTemplateModal
+        open={save_template_modal_open}
+        on_open_change={set_save_template_modal_open}
+        component_ids={collect_component_ids(subjects)}
+        shared_component_ids={collect_shared_component_ids(shared_selections)}
+      />
+
+      <KeyboardShortcutsModal
+        open={shortcuts_modal_open}
+        on_open_change={set_shortcuts_modal_open}
+        context="builder"
       />
     </div>
   );

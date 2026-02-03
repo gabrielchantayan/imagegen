@@ -59,7 +59,7 @@ export const POST = async (request: Request, { params }: Params) => {
     let ext = file.type.split("/")[1] || "png";
 
     if (file.type === "image/avif") {
-      buffer = await sharp(buffer).png().toBuffer();
+      buffer = Buffer.from(await sharp(buffer).png().toBuffer());
       ext = "png";
     }
 

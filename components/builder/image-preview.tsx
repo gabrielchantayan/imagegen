@@ -120,20 +120,51 @@ export const ImagePreview = () => {
 
   if (generation_status === "queued") {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
-        <div className="animate-pulse mb-4 text-lg">Queued</div>
+      <div className="h-full flex flex-col items-center justify-center text-muted-foreground bg-muted/5">
+        <div className="relative mb-6">
+          {/* Outer pulsing ring */}
+          <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+          {/* Queue icon */}
+          <div className="relative p-4 rounded-full bg-primary/10 border border-primary/30">
+            <div className="size-8 flex items-center justify-center font-bold text-primary text-lg">
+              {queue_position ?? "?"}
+            </div>
+          </div>
+        </div>
+        <p className="font-medium text-foreground mb-1">In Queue</p>
         {queue_position !== null && (
-          <p className="text-sm">Position {queue_position} in queue</p>
+          <p className="text-sm text-muted-foreground">
+            Position {queue_position} of 5
+          </p>
         )}
+        <p className="text-xs text-muted-foreground/70 mt-3 max-w-[200px] text-center">
+          Your request is waiting to be processed
+        </p>
       </div>
     );
   }
 
   if (generation_status === "generating") {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
-        <Loader2 className="size-12 animate-spin mb-4" />
-        <p>Generating image...</p>
+      <div className="h-full flex flex-col items-center justify-center text-muted-foreground bg-muted/5">
+        {/* Animated progress indicator */}
+        <div className="relative mb-6">
+          {/* Outer spinning ring */}
+          <div className="absolute inset-[-4px] rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+          {/* Inner content */}
+          <div className="p-4 rounded-full bg-primary/10">
+            <Loader2 className="size-8 text-primary animate-spin" />
+          </div>
+        </div>
+        <p className="font-medium text-foreground mb-1">Generating</p>
+        <p className="text-sm text-muted-foreground">Creating your image...</p>
+
+        {/* Animated progress dots */}
+        <div className="flex gap-1 mt-4">
+          <div className="size-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+          <div className="size-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+          <div className="size-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+        </div>
       </div>
     );
   }

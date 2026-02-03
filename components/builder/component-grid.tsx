@@ -21,8 +21,9 @@ import {
 import { use_references } from "@/lib/hooks/use-references";
 import { use_builder_store, SHARED_CATEGORIES } from "@/lib/stores/builder-store";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
-import { Loader2, Plus, ScanFace, Search, X } from "lucide-react";
+import { Plus, ScanFace, Search, X } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
+import { SkeletonComponentGrid } from "@/components/ui/skeleton";
 
 import type { Component } from "@/lib/types/database";
 
@@ -161,8 +162,18 @@ export const ComponentGrid = () => {
 
   if (is_loading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      <div className="h-full flex flex-col">
+        <div className="flex-none p-4 pb-0">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="relative flex-1 max-w-sm">
+              <Input placeholder="Search components..." disabled className="w-full" />
+            </div>
+          </div>
+          <div className="h-px bg-border w-full" />
+        </div>
+        <div className="flex-1 p-4">
+          <SkeletonComponentGrid count={8} />
+        </div>
       </div>
     );
   }

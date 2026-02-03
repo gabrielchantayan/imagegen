@@ -2,10 +2,11 @@
 
 import { useEffect, useRef } from "react";
 
-import { ImageIcon } from "lucide-react";
+import { ImageIcon, Loader2 } from "lucide-react";
 
 import { HistoryCard } from "./history-card";
 import { EmptyState } from "@/components/shared/empty-state";
+import { SkeletonImageGrid } from "@/components/ui/skeleton";
 
 import type { GenerationWithFavorite } from "@/lib/types/database";
 
@@ -75,14 +76,7 @@ export const HistoryGrid = ({
   if (is_loading) {
     return (
       <div className="h-full overflow-y-auto p-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div
-              key={i}
-              className="aspect-[3/4] bg-muted animate-pulse rounded-lg"
-            />
-          ))}
-        </div>
+        <SkeletonImageGrid count={12} />
       </div>
     );
   }
@@ -118,8 +112,9 @@ export const HistoryGrid = ({
 
       <div ref={load_more_ref} className="h-10 mt-8">
         {is_loading_more && (
-          <div className="flex justify-center">
-            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+          <div className="flex items-center justify-center gap-2 text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" />
+            <span className="text-sm">Loading more...</span>
           </div>
         )}
       </div>
