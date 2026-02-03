@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Image, Calendar, Clock, CheckCircle } from "lucide-react";
+import { Image, DollarSign, Zap, CheckCircle } from "lucide-react";
 
 import type { GenerationStats, QueueStats } from "@/lib/repositories/stats";
 
@@ -16,25 +16,34 @@ export const StatsOverview = ({ stats, queue }: StatsOverviewProps) => {
       title: "Total Generations",
       value: stats.total.toLocaleString(),
       icon: Image,
-      description: `${stats.today} today`,
+      description: `${stats.today_pst} today (PST)`,
+      trend: "neutral",
     },
     {
-      title: "This Week",
-      value: stats.this_week.toLocaleString(),
-      icon: Calendar,
-      description: "Last 7 days",
+      title: "Estimated Cost",
+      value: `$${stats.estimated_cost.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      icon: DollarSign,
+      description: "Based on $0.04/image",
+      trend: "neutral",
     },
     {
       title: "Success Rate",
       value: `${stats.success_rate}%`,
       icon: CheckCircle,
       description: "Completed generations",
+      trend: stats.success_rate >= 95 ? "good" : stats.success_rate >= 80 ? "warning" : "bad",
     },
     {
-      title: "Queue",
-      value: `${queue.processing}/${queue.queued + queue.processing}`,
-      icon: Clock,
-      description: queue.avg_wait_time ? `~${queue.avg_wait_time}s avg wait` : "No wait time data",
+      title: "Queue Status",
+      value: queue.processing > 0 ? "Processing" : "Idle",
+      icon: Zap,
+      description: `${queue.queued} queued · ${
+        queue.avg_wait_time ? `~${queue.avg_wait_time}s wait` : "No wait data"
+      }`,
+      trend: "neutral",
     },
   ];
 
@@ -55,3 +64,4 @@ export const StatsOverview = ({ stats, queue }: StatsOverviewProps) => {
     </div>
   );
 };
+

@@ -57,6 +57,7 @@ export const process_queue = async (): Promise<void> => {
           image_size: "4K",
           reference_images: reference_images.length > 0 ? reference_images : undefined,
           use_google_search: item.google_search,
+          safety_override: item.safety_override,
         });
 
         let used_fallback = false;
@@ -70,6 +71,7 @@ export const process_queue = async (): Promise<void> => {
             aspect_ratio: "3:4",
             image_size: "4K",
             use_google_search: item.google_search,
+            safety_override: item.safety_override,
           });
 
           if (base_result.success && base_result.images && base_result.images.length > 0) {

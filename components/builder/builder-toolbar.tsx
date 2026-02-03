@@ -112,6 +112,7 @@ export const BuilderToolbar = () => {
         reference_photo_ids: selected_reference_ids.length > 0 ? selected_reference_ids : undefined,
         components_used: components_used.length > 0 ? components_used : undefined,
         google_search: settings.google_search,
+        safety_override: settings.safety_override,
       });
 
       generation_id_ref.current = result.generation_id;

@@ -14,6 +14,7 @@ type RawQueueItem = {
   completed_at: string | null;
   reference_photo_ids: string | null;
   google_search: number;
+  safety_override: number;
 };
 
 const parse_queue_item = (row: RawQueueItem): QueueItem & { generation_id: string | null } => {
@@ -23,12 +24,14 @@ const parse_queue_item = (row: RawQueueItem): QueueItem & { generation_id: strin
     generation_id: row.generation_id,
     reference_photo_ids: row.reference_photo_ids ? JSON.parse(row.reference_photo_ids) : null,
     google_search: row.google_search === 1,
+    safety_override: row.safety_override === 1,
   };
 };
 
 type EnqueueOptions = {
   reference_photo_ids?: string[];
   google_search?: boolean;
+  safety_override?: boolean;
 };
 
 export const enqueue = (
@@ -41,15 +44,16 @@ export const enqueue = (
   const timestamp = now();
 
   db.prepare(`
-    INSERT INTO generation_queue (id, prompt_json, generation_id, status, created_at, reference_photo_ids, google_search)
-    VALUES (?, ?, ?, 'queued', ?, ?, ?)
+    INSERT INTO generation_queue (id, prompt_json, generation_id, status, created_at, reference_photo_ids, google_search, safety_override)
+    VALUES (?, ?, ?, 'queued', ?, ?, ?, ?)
   `).run(
     id,
     JSON.stringify(prompt_json),
     generation_id,
     timestamp,
     options?.reference_photo_ids && options.reference_photo_ids.length > 0 ? JSON.stringify(options.reference_photo_ids) : null,
-    options?.google_search ? 1 : 0
+    options?.google_search ? 1 : 0,
+    options?.safety_override ? 1 : 0
   );
 
   return get_queue_item(id)! as QueueItem & { generation_id: string };

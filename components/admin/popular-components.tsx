@@ -38,29 +38,46 @@ export const PopularComponents = ({ components }: PopularComponentsProps) => {
     );
   }
 
+  const max_usage = Math.max(...components.map((c) => c.usage_count));
+
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle>Popular Components</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {components.map((component, index) => (
-            <div key={component.id} className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-muted-foreground w-6">#{index + 1}</span>
-                <div>
-                  <p className="font-medium">{component.name}</p>
-                  <Badge variant="secondary" className="text-xs">
-                    {CATEGORY_LABELS[component.category_id] || component.category_id}
-                  </Badge>
+        <div className="space-y-5">
+          {components.map((component, index) => {
+            const usage_percent = (component.usage_count / max_usage) * 100;
+            return (
+              <div key={component.id} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-muted-foreground text-sm min-w-[24px]">#{index + 1}</span>
+                    <span className="font-medium text-sm truncate max-w-[200px]">
+                      {component.name}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] px-1.5 h-5 font-normal">
+                      {CATEGORY_LABELS[component.category_id] || component.category_id}
+                    </Badge>
+                  </div>
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {component.usage_count}
+                  </span>
+                </div>
+                {/* Progress bar */}
+                <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary/80 rounded-full"
+                    style={{ width: `${usage_percent}%` }}
+                  />
                 </div>
               </div>
-              <span className="text-muted-foreground">{component.usage_count} uses</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>
   );
 };
+

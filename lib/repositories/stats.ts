@@ -3,9 +3,11 @@ import { get_db } from "../db";
 export type GenerationStats = {
   total: number;
   today: number;
+  today_pst: number;
   this_week: number;
   this_month: number;
   success_rate: number;
+  estimated_cost: number;
 };
 
 export type PopularComponent = {
@@ -20,6 +22,7 @@ export type DailyGenerations = {
   count: number;
   success: number;
   failed: number;
+  estimated_cost: number;
 };
 
 export type QueueStats = {
@@ -27,6 +30,9 @@ export type QueueStats = {
   processing: number;
   avg_wait_time: number | null;
 };
+
+// Estimated cost per image in USD (based on standard AI image generation rates ~0.04)
+const COST_PER_IMAGE = 0.04;
 
 export const get_generation_stats = (): GenerationStats => {
   const db = get_db();
@@ -38,6 +44,15 @@ export const get_generation_stats = (): GenerationStats => {
   const today = (
     db
       .prepare("SELECT COUNT(*) as count FROM generations WHERE date(created_at) = date('now')")
+      .get() as { count: number }
+  ).count;
+
+  // PST is UTC-8
+  const today_pst = (
+    db
+      .prepare(
+        "SELECT COUNT(*) as count FROM generations WHERE date(datetime(created_at, '-8 hours')) = date(datetime('now', '-8 hours'))"
+      )
       .get() as { count: number }
   ).count;
 
@@ -71,9 +86,11 @@ export const get_generation_stats = (): GenerationStats => {
   return {
     total,
     today,
+    today_pst,
     this_week,
     this_month,
     success_rate: Math.round(success_rate * 10) / 10,
+    estimated_cost: total * COST_PER_IMAGE,
   };
 };
 
@@ -124,9 +141,12 @@ export const get_daily_generations = (days = 30): DailyGenerations[] => {
     ORDER BY dates.date ASC
   `
     )
-    .all(days - 1) as DailyGenerations[];
+    .all(days - 1) as any[];
 
-  return rows;
+  return rows.map(row => ({
+    ...row,
+    estimated_cost: row.count * COST_PER_IMAGE
+  }));
 };
 
 export const get_queue_stats = (): QueueStats => {

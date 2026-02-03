@@ -17,6 +17,7 @@ export const POST = async (request: Request) => {
     const reference_photo_ids = body.reference_photo_ids as string[] | undefined;
     const components_used = body.components_used as ComponentUsed[] | undefined;
     const google_search = body.google_search as boolean | undefined;
+    const safety_override = body.safety_override as boolean | undefined;
     const results = [];
 
     // Enqueue multiple generations
@@ -25,6 +26,7 @@ export const POST = async (request: Request) => {
       const queue_item = enqueue(body.prompt_json, generation.id, {
         reference_photo_ids,
         google_search,
+        safety_override,
       });
       results.push({
         queue_id: queue_item.id,

@@ -103,7 +103,7 @@ export const SettingsDropdown = () => {
           checked={settings.safety_override}
           onCheckedChange={(checked) => update_settings({ safety_override: checked })}
         >
-          Safety Override
+          Image Safety Override
         </DropdownMenuCheckboxItem>
 
         <DropdownMenuCheckboxItem

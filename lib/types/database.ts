@@ -58,6 +58,7 @@ export type QueueItem = {
   completed_at: string | null;
   reference_photo_ids: string[] | null;
   google_search: boolean;
+  safety_override: boolean;
 };
 
 export type SessionState = {

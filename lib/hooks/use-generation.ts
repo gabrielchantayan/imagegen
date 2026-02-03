@@ -58,6 +58,7 @@ export type SubmitGenerationOptions = {
   reference_photo_ids?: string[];
   components_used?: ComponentUsedInput[];
   google_search?: boolean;
+  safety_override?: boolean;
 };
 
 export type SubmitGenerationResponse = {
@@ -79,6 +80,7 @@ export const submit_generation = async (
       reference_photo_ids: options?.reference_photo_ids,
       components_used: options?.components_used,
       google_search: options?.google_search,
+      safety_override: options?.safety_override,
     }),
   });
 
