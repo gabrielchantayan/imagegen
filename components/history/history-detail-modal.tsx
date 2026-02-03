@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { Star, Download, Trash2, Copy } from "lucide-react";
 
@@ -7,7 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogDescription,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogFooter,
@@ -29,12 +33,14 @@ export const HistoryDetailModal = ({
   on_delete,
   on_use_prompt,
 }: HistoryDetailModalProps) => {
+  const [show_delete_dialog, set_show_delete_dialog] = useState(false);
+
   if (!item) return null;
 
   const handle_delete = () => {
-    if (confirm("Delete this generation?")) {
-      on_delete(item.id);
-    }
+    set_show_delete_dialog(false);
+    on_delete(item.id);
+    on_close();
   };
 
   return (
@@ -55,7 +61,7 @@ export const HistoryDetailModal = ({
                   }`}
                 />
               </Button>
-              <Button variant="ghost" size="icon" onClick={handle_delete}>
+              <Button variant="ghost" size="icon" onClick={() => set_show_delete_dialog(true)}>
                 <Trash2 className="w-5 h-5 text-destructive" />
               </Button>
             </div>
@@ -106,6 +112,27 @@ export const HistoryDetailModal = ({
             Close
           </Button>
         </AlertDialogFooter>
+
+        <AlertDialog open={show_delete_dialog} onOpenChange={set_show_delete_dialog}>
+          <AlertDialogContent className="w-lg max-w-lg">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this image?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the
+                image and its associated data.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handle_delete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </AlertDialogContent>
     </AlertDialog>
   );

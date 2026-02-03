@@ -4,6 +4,16 @@ import { useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { HistoryToolbar } from "./history-toolbar";
 import { HistoryFilterSidebar } from "./history-filter-sidebar";
 import { HistoryGrid } from "./history-grid";
@@ -29,6 +39,7 @@ export const HistoryLayout = () => {
   const shortcuts_modal_open = use_history_store((s) => s.shortcuts_modal_open);
   const compare_modal_open = use_history_store((s) => s.compare_modal_open);
   const compare_items = use_history_store((s) => s.compare_items);
+  const delete_confirmation_item = use_history_store((s) => s.delete_confirmation_item);
 
   // History store actions
   const toggle_select_mode = use_history_store((s) => s.toggle_select_mode);
@@ -43,6 +54,7 @@ export const HistoryLayout = () => {
   const open_compare = use_history_store((s) => s.open_compare);
   const set_focused_index = use_history_store((s) => s.set_focused_index);
   const focused_index = use_history_store((s) => s.focused_index);
+  const set_delete_confirmation_item = use_history_store((s) => s.set_delete_confirmation_item);
 
   // Fetch history data with filters
   const {
@@ -159,7 +171,6 @@ export const HistoryLayout = () => {
     detail_panel,
     shortcuts_modal_open,
     compare_modal_open,
-    on_delete: handle_delete,
     on_toggle_favorite: handle_toggle_favorite,
     on_toggle_selection: toggle_selection,
     on_exit_select_mode: exit_select_mode,
@@ -168,6 +179,7 @@ export const HistoryLayout = () => {
     on_open_shortcuts: set_shortcuts_modal_open,
     on_close_compare: close_compare,
     on_compare: handle_compare,
+    on_request_delete: set_delete_confirmation_item,
     get_grid_columns,
   });
 
@@ -237,6 +249,51 @@ export const HistoryLayout = () => {
           on_close={close_compare}
         />
       )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={!!delete_confirmation_item}
+        onOpenChange={(open) => !open && set_delete_confirmation_item(null)}
+      >
+        <AlertDialogContent
+          className="w-lg max-w-lg"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (delete_confirmation_item) {
+                handle_delete(delete_confirmation_item.id);
+                set_delete_confirmation_item(null);
+              }
+            }
+          }}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this image?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              image and its associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="gap-2">
+              Cancel
+              <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">Esc</kbd>
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (delete_confirmation_item) {
+                  handle_delete(delete_confirmation_item.id);
+                  set_delete_confirmation_item(null);
+                }
+              }}
+              className="gap-2 bg-destructive text-white hover:bg-destructive/90"
+            >
+              Delete
+              <kbd className="px-1.5 py-0.5 rounded bg-white/20 font-mono text-xs">Enter</kbd>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

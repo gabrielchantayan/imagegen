@@ -15,7 +15,6 @@ type UseHistoryKeyboardShortcutsOptions = {
   detail_panel: DetailPanelState;
   shortcuts_modal_open: boolean;
   compare_modal_open: boolean;
-  on_delete: (id: string) => void;
   on_toggle_favorite: (id: string) => void;
   on_toggle_selection: (id: string) => void;
   on_exit_select_mode: () => void;
@@ -24,6 +23,7 @@ type UseHistoryKeyboardShortcutsOptions = {
   on_open_shortcuts: (open: boolean) => void;
   on_close_compare: () => void;
   on_compare: () => void;
+  on_request_delete: (item: GenerationWithFavorite) => void;
   get_grid_columns: () => number;
 };
 
@@ -38,7 +38,6 @@ export const use_history_keyboard_shortcuts = (
     detail_panel,
     shortcuts_modal_open,
     compare_modal_open,
-    on_delete,
     on_toggle_favorite,
     on_toggle_selection,
     on_exit_select_mode,
@@ -47,6 +46,7 @@ export const use_history_keyboard_shortcuts = (
     on_open_shortcuts,
     on_close_compare,
     on_compare,
+    on_request_delete,
     get_grid_columns,
   } = options;
 
@@ -141,9 +141,7 @@ export const use_history_keyboard_shortcuts = (
       // Delete - delete focused/selected item(s)
       if (e.key === "Delete" || e.key === "Backspace") {
         if (detail_panel.mode === "single") {
-          if (confirm("Delete this generation?")) {
-            on_delete(detail_panel.item.id);
-          }
+          on_request_delete(detail_panel.item);
         }
         return;
       }
@@ -165,7 +163,6 @@ export const use_history_keyboard_shortcuts = (
     detail_panel,
     shortcuts_modal_open,
     compare_modal_open,
-    on_delete,
     on_toggle_favorite,
     on_toggle_selection,
     on_exit_select_mode,
@@ -174,6 +171,7 @@ export const use_history_keyboard_shortcuts = (
     on_open_shortcuts,
     on_close_compare,
     on_compare,
+    on_request_delete,
     get_grid_columns,
   ]);
 };

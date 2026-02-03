@@ -46,6 +46,9 @@ type HistoryState = {
   // Compare mode items
   compare_items: [GenerationWithFavorite, GenerationWithFavorite] | null;
 
+  // Delete confirmation
+  delete_confirmation_item: GenerationWithFavorite | null;
+
   // Actions - Selection
   toggle_select_mode: () => void;
   exit_select_mode: () => void;
@@ -85,6 +88,9 @@ type HistoryState = {
   // Actions - Compare
   open_compare: (items: [GenerationWithFavorite, GenerationWithFavorite]) => void;
   close_compare: () => void;
+
+  // Actions - Delete confirmation
+  set_delete_confirmation_item: (item: GenerationWithFavorite | null) => void;
 };
 
 const DEFAULT_FILTERS: FilterState = {
@@ -115,6 +121,8 @@ export const use_history_store = create<HistoryState>()((set, get) => ({
   detail_panel: { mode: "empty" },
 
   compare_items: null,
+
+  delete_confirmation_item: null,
 
   // Selection actions
   toggle_select_mode: () => {
@@ -355,6 +363,11 @@ export const use_history_store = create<HistoryState>()((set, get) => ({
       compare_modal_open: false,
       compare_items: null,
     });
+  },
+
+  // Delete confirmation actions
+  set_delete_confirmation_item: (item) => {
+    set({ delete_confirmation_item: item });
   },
 }));
 
