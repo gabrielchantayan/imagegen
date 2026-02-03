@@ -160,7 +160,16 @@ export const face_swap_edit = async (
         },
       },
       {
-        text: "Replace the face of the subject in the second image with the face from the first reference photo. Maintain the exact pose, lighting, expression, body position, clothing, and all other details from the second image. Only the facial features should change to match the reference.",
+        text: `Using the first image as a face reference, seamlessly replace the face of the person in the second image. The replacement should:
+
+- Match the facial structure, features, and likeness from the reference photo
+- Preserve the skin tone from the second image (it may be tanned, have body paint, or other intentional changes)
+- Preserve the exact pose, body position, expression, and head angle from the second image
+- Maintain all lighting, shadows, and color grading from the second image
+- Keep all clothing, accessories, background, and composition unchanged
+- Blend naturally at face boundaries with no visible seams or artifacts
+
+Only the facial features should change. Everything else must remain identical to the second image.`,
       },
     ];
 
