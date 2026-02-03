@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
-import { Star, Trash2, Download, Copy, ImageIcon, Heart, Archive, Plus, X, Tag, Clipboard, User, RefreshCw } from "lucide-react";
+import { Star, Trash2, Download, Copy, ImageIcon, Heart, Archive, Plus, X, Clipboard, User, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,53 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { DetailPanelState } from "@/lib/stores/history-store";
 import type { GenerationWithFavorite } from "@/lib/types/database";
+
+// Category color mapping for grouped tag display
+const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  characters: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
+  physical_traits: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
+  jewelry: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+  wardrobe: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  wardrobe_tops: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  wardrobe_bottoms: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  wardrobe_footwear: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  poses: { bg: "bg-green-50", text: "text-green-700", border: "border-green-200" },
+  scenes: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+  backgrounds: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
+  camera: { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200" },
+  ban_lists: { bg: "bg-red-50", text: "text-red-700", border: "border-red-200" },
+  subject: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
+  user: { bg: "bg-slate-50", text: "text-slate-700", border: "border-slate-200" },
+};
+
+const DEFAULT_COLOR = { bg: "bg-secondary", text: "text-secondary-foreground", border: "border-border" };
+
+// Category display names
+const CATEGORY_LABELS: Record<string, string> = {
+  characters: "Characters",
+  physical_traits: "Traits",
+  jewelry: "Jewelry",
+  wardrobe: "Wardrobe",
+  wardrobe_tops: "Tops",
+  wardrobe_bottoms: "Bottoms",
+  wardrobe_footwear: "Footwear",
+  poses: "Poses",
+  scenes: "Scenes",
+  backgrounds: "Backgrounds",
+  camera: "Camera",
+  ban_lists: "Ban List",
+  subject: "Subject",
+  user: "User Tags",
+};
+
+type GroupedTags = Record<string, { id: number; tag: string }[]>;
+
+// Extract display name from tag (e.g., "char:selene" -> "Selene")
+const format_tag_name = (tag: string): string => {
+  const parts = tag.split(":");
+  const name = parts.length > 1 ? parts[1] : tag;
+  return name.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+};
 
 type HistoryDetailPanelProps = {
   state: DetailPanelState;
@@ -243,6 +290,115 @@ type ReferencePhoto = {
   image_path: string;
 };
 
+// Tags Section component - shows grouped colored tags
+const TagsSection = ({
+  tags,
+  on_add_tag,
+  on_remove_tag,
+  new_tag,
+  set_new_tag,
+  is_adding_tag,
+}: {
+  tags?: { id: number; tag: string; category: string | null }[];
+  on_add_tag: () => void;
+  on_remove_tag: (tag: string) => void;
+  new_tag: string;
+  set_new_tag: (value: string) => void;
+  is_adding_tag: boolean;
+}) => {
+  // Group tags by category
+  const grouped_tags = useMemo(() => {
+    if (!tags || tags.length === 0) return {};
+
+    const groups: GroupedTags = {};
+    for (const t of tags) {
+      const category = t.category || "user";
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push({ id: t.id, tag: t.tag });
+    }
+    return groups;
+  }, [tags]);
+
+  const has_tags = Object.keys(grouped_tags).length > 0;
+
+  // Order categories: known categories first, then user tags at the end
+  const category_order = [
+    "characters", "physical_traits", "jewelry",
+    "wardrobe", "wardrobe_tops", "wardrobe_bottoms", "wardrobe_footwear",
+    "poses", "scenes", "backgrounds", "camera", "ban_lists", "subject", "user"
+  ];
+
+  const sorted_categories = Object.keys(grouped_tags).sort((a, b) => {
+    const a_idx = category_order.indexOf(a);
+    const b_idx = category_order.indexOf(b);
+    if (a_idx === -1 && b_idx === -1) return a.localeCompare(b);
+    if (a_idx === -1) return 1;
+    if (b_idx === -1) return -1;
+    return a_idx - b_idx;
+  });
+
+  return (
+    <div className="mt-3 space-y-2">
+      {has_tags && (
+        <div className="space-y-2">
+          {sorted_categories.map((category) => {
+            const colors = CATEGORY_COLORS[category] || DEFAULT_COLOR;
+            const label = CATEGORY_LABELS[category] || category;
+            const category_tags = grouped_tags[category];
+
+            return (
+              <div key={category} className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider w-16 shrink-0">
+                  {label}
+                </span>
+                {category_tags.map((t) => (
+                  <Badge
+                    key={t.id}
+                    variant="outline"
+                    className={`pl-2 pr-1 h-6 ${colors.bg} ${colors.text} ${colors.border}`}
+                  >
+                    {format_tag_name(t.tag)}
+                    <button
+                      onClick={() => on_remove_tag(t.tag)}
+                      className="ml-1 hover:bg-black/10 rounded-full p-0.5"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add tag input */}
+      <div className="flex items-center gap-1 pt-1">
+        <Input
+          value={new_tag}
+          onChange={(e) => set_new_tag(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") on_add_tag();
+          }}
+          placeholder="Add custom tag..."
+          className="h-6 text-xs px-2 w-32"
+        />
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-6 w-6"
+          onClick={on_add_tag}
+          disabled={is_adding_tag || !new_tag.trim()}
+        >
+          <Plus className="size-3" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 // Single item state - shows full detail view
 const SingleState = ({
   item,
@@ -447,40 +603,15 @@ const SingleState = ({
             </div>
           )}
 
-          {/* Tags Section */}
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {item.tags?.map((t) => (
-              <Badge key={t.id} variant="secondary" className="pl-2 pr-1 h-6">
-                {t.tag}
-                <button
-                  onClick={() => handle_remove_tag(t.tag)}
-                  className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
-                >
-                  <X className="size-3" />
-                </button>
-              </Badge>
-            ))}
-            <div className="flex items-center gap-1 min-w-[120px]">
-               <Input
-                 value={new_tag}
-                 onChange={(e) => set_new_tag(e.target.value)}
-                 onKeyDown={(e) => {
-                    if (e.key === "Enter") handle_add_tag();
-                 }}
-                 placeholder="Add tag..."
-                 className="h-6 text-xs px-2 w-24"
-               />
-               <Button
-                 size="icon"
-                 variant="ghost"
-                 className="h-6 w-6"
-                 onClick={handle_add_tag}
-                 disabled={is_adding_tag || !new_tag.trim()}
-               >
-                 <Plus className="size-3" />
-               </Button>
-            </div>
-          </div>
+          {/* Tags Section - Grouped by Category */}
+          <TagsSection
+            tags={item.tags}
+            on_add_tag={handle_add_tag}
+            on_remove_tag={handle_remove_tag}
+            new_tag={new_tag}
+            set_new_tag={set_new_tag}
+            is_adding_tag={is_adding_tag}
+          />
         </div>
 
         {/* Prompt JSON */}

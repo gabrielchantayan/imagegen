@@ -2,7 +2,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 
 import { get_next_in_queue, update_queue_status } from "./queue";
-import { update_generation } from "./repositories/generations";
+import { update_generation, get_generation } from "./repositories/generations";
 import { create_tags_for_generation } from "./repositories/tags";
 import { get_references_by_ids } from "./repositories/references";
 import { generate_image, face_swap_edit, type ReferenceImage } from "./gemini";
@@ -109,7 +109,12 @@ export const process_queue = async (): Promise<void> => {
 
             // Extract and store tags for the generation
             try {
-              create_tags_for_generation(item.generation_id, item.prompt_json);
+              const generation = get_generation(item.generation_id);
+              create_tags_for_generation(
+                item.generation_id,
+                item.prompt_json,
+                generation?.components_used
+              );
             } catch {
               // Tag creation is non-critical, continue on error
             }

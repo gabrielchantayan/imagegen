@@ -46,10 +46,17 @@ export const use_generation = (generation_id: string | null) => {
   return { status, is_polling, start_polling };
 };
 
+export type ComponentUsedInput = {
+  id: string;
+  name: string;
+  category_id: string;
+};
+
 export type SubmitGenerationOptions = {
   aspect_ratio?: string;
   count?: number;
   reference_photo_ids?: string[];
+  components_used?: ComponentUsedInput[];
 };
 
 export type SubmitGenerationResponse = {
@@ -69,6 +76,7 @@ export const submit_generation = async (
       prompt_json,
       options,
       reference_photo_ids: options?.reference_photo_ids,
+      components_used: options?.components_used,
     }),
   });
 

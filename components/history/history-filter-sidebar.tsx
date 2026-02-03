@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import useSWR from "swr";
 
 import {
@@ -11,6 +11,7 @@ import {
   SortDesc,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   X,
 } from "lucide-react";
 
@@ -27,8 +28,67 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { use_history_store, type DatePreset, type SortOption } from "@/lib/stores/history-store";
 import type { GenerationWithFavorite } from "@/lib/types/database";
+
+// Category color mapping
+const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  characters: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
+  physical_traits: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
+  jewelry: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+  wardrobe: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  wardrobe_tops: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  wardrobe_bottoms: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  wardrobe_footwear: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  poses: { bg: "bg-green-50", text: "text-green-700", border: "border-green-200" },
+  scenes: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+  backgrounds: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
+  camera: { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200" },
+  ban_lists: { bg: "bg-red-50", text: "text-red-700", border: "border-red-200" },
+  subject: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
+  user: { bg: "bg-slate-50", text: "text-slate-700", border: "border-slate-200" },
+};
+
+const DEFAULT_COLOR = { bg: "bg-secondary", text: "text-secondary-foreground", border: "border-border" };
+
+// Category display names
+const CATEGORY_LABELS: Record<string, string> = {
+  characters: "Characters",
+  physical_traits: "Traits",
+  jewelry: "Jewelry",
+  wardrobe: "Wardrobe",
+  wardrobe_tops: "Tops",
+  wardrobe_bottoms: "Bottoms",
+  wardrobe_footwear: "Footwear",
+  poses: "Poses",
+  scenes: "Scenes",
+  backgrounds: "Backgrounds",
+  camera: "Camera",
+  ban_lists: "Ban List",
+  subject: "Subject",
+  user: "User Tags",
+};
+
+// Category order for sorting
+const CATEGORY_ORDER = [
+  "characters", "physical_traits", "jewelry",
+  "wardrobe", "wardrobe_tops", "wardrobe_bottoms", "wardrobe_footwear",
+  "poses", "scenes", "backgrounds", "camera", "ban_lists", "subject", "user"
+];
+
+// Extract display name from tag (e.g., "char:selene" -> "Selene")
+const format_tag_name = (tag: string): string => {
+  const parts = tag.split(":");
+  const name = parts.length > 1 ? parts[1] : tag;
+  return name.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+};
+
+type TagWithCategoryCount = { tag: string; category: string | null; count: number };
 
 type HistoryFilterSidebarProps = {
   collapsed: boolean;
@@ -63,10 +123,55 @@ export const HistoryFilterSidebar = ({
   const set_sort = use_history_store((s) => s.set_sort);
   const reset_filters = use_history_store((s) => s.reset_filters);
 
-  // Fetch available tags from API
-  const { data: tagsData } = useSWR<{ tags: { tag: string; count: number }[] }>("/api/tags", (url: string) =>
+  // Fetch available tags from API (now includes category)
+  const { data: tagsData } = useSWR<{ tags: TagWithCategoryCount[] }>("/api/tags", (url: string) =>
     fetch(url).then((res) => res.json())
   );
+
+  // Group tags by category
+  const grouped_tags = useMemo(() => {
+    const tags = tagsData?.tags || [];
+    const groups: Record<string, TagWithCategoryCount[]> = {};
+
+    for (const t of tags) {
+      const category = t.category || "user";
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(t);
+    }
+
+    return groups;
+  }, [tagsData]);
+
+  // Get sorted category keys
+  const sorted_categories = useMemo(() => {
+    return Object.keys(grouped_tags).sort((a, b) => {
+      const a_idx = CATEGORY_ORDER.indexOf(a);
+      const b_idx = CATEGORY_ORDER.indexOf(b);
+      if (a_idx === -1 && b_idx === -1) return a.localeCompare(b);
+      if (a_idx === -1) return 1;
+      if (b_idx === -1) return -1;
+      return a_idx - b_idx;
+    });
+  }, [grouped_tags]);
+
+  // Track expanded categories (default: first two categories expanded)
+  const [expanded_categories, set_expanded_categories] = useState<Set<string>>(
+    new Set(sorted_categories.slice(0, 2))
+  );
+
+  const toggle_category_expanded = (category: string) => {
+    set_expanded_categories((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
+  };
 
   const available_tags = useMemo(() => {
     return tagsData?.tags || [];
@@ -261,37 +366,76 @@ export const HistoryFilterSidebar = ({
           {/* Selected tags */}
           {filters.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-2">
-              {filters.tags.map((tag) => (
-                <Badge
-                  key={tag}
-                  variant="default"
-                  className="text-xs cursor-pointer"
-                  onClick={() => toggle_tag(tag)}
-                >
-                  {tag}
-                  <X className="size-3 ml-1" />
-                </Badge>
-              ))}
+              {filters.tags.map((tag) => {
+                // Find the tag's category to apply correct color
+                const tag_data = available_tags.find((t) => t.tag === tag);
+                const category = tag_data?.category || "user";
+                const colors = CATEGORY_COLORS[category] || DEFAULT_COLOR;
+
+                return (
+                  <Badge
+                    key={tag}
+                    variant="outline"
+                    className={`text-xs cursor-pointer ${colors.bg} ${colors.text} ${colors.border}`}
+                    onClick={() => toggle_tag(tag)}
+                  >
+                    {format_tag_name(tag)}
+                    <X className="size-3 ml-1" />
+                  </Badge>
+                );
+              })}
             </div>
           )}
 
-          {/* Available tags */}
-          <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
-            {available_tags
-              .filter((t) => !filters.tags.includes(t.tag))
-              .map(({ tag, count }) => (
-                <Badge
-                  key={tag}
-                  variant="outline"
-                  className="text-xs cursor-pointer hover:bg-muted"
-                  onClick={() => toggle_tag(tag)}
-                >
-                  {tag} ({count})
-                </Badge>
-              ))}
-            {available_tags.length === 0 && (
+          {/* Grouped tags by category */}
+          <div className="space-y-1 max-h-48 overflow-y-auto">
+            {sorted_categories.length === 0 && (
               <span className="text-xs text-muted-foreground">No tags available</span>
             )}
+
+            {sorted_categories.map((category) => {
+              const colors = CATEGORY_COLORS[category] || DEFAULT_COLOR;
+              const label = CATEGORY_LABELS[category] || category;
+              const category_tags = grouped_tags[category]?.filter(
+                (t) => !filters.tags.includes(t.tag)
+              ) || [];
+
+              if (category_tags.length === 0) return null;
+
+              const is_expanded = expanded_categories.has(category);
+
+              return (
+                <Collapsible
+                  key={category}
+                  open={is_expanded}
+                  onOpenChange={() => toggle_category_expanded(category)}
+                >
+                  <CollapsibleTrigger className="flex items-center justify-between w-full py-1 text-xs font-medium text-muted-foreground hover:text-foreground">
+                    <span>{label}</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px]">({category_tags.length})</span>
+                      <ChevronDown
+                        className={`size-3 transition-transform ${is_expanded ? "" : "-rotate-90"}`}
+                      />
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="flex flex-wrap gap-1 py-1">
+                      {category_tags.map(({ tag, count }) => (
+                        <Badge
+                          key={tag}
+                          variant="outline"
+                          className={`text-xs cursor-pointer hover:opacity-80 ${colors.bg} ${colors.text} ${colors.border}`}
+                          onClick={() => toggle_tag(tag)}
+                        >
+                          {format_tag_name(tag)} ({count})
+                        </Badge>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            })}
           </div>
         </div>
 

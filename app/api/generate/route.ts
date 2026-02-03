@@ -3,6 +3,7 @@ import { with_auth } from "@/lib/api-auth";
 import { enqueue, get_queue_status } from "@/lib/queue";
 import { create_generation } from "@/lib/repositories/generations";
 import { process_queue } from "@/lib/generation-processor";
+import type { ComponentUsed } from "@/lib/types/database";
 
 export const POST = async (request: Request) => {
   return with_auth(async () => {
@@ -14,11 +15,12 @@ export const POST = async (request: Request) => {
 
     const count = Math.min(Math.max(1, Number(body.options?.count || 1)), 4);
     const reference_photo_ids = body.reference_photo_ids as string[] | undefined;
+    const components_used = body.components_used as ComponentUsed[] | undefined;
     const results = [];
 
     // Enqueue multiple generations
     for (let i = 0; i < count; i++) {
-      const generation = create_generation(body.prompt_json, reference_photo_ids);
+      const generation = create_generation(body.prompt_json, reference_photo_ids, components_used);
       const queue_item = enqueue(body.prompt_json, generation.id, reference_photo_ids);
       results.push({
         queue_id: queue_item.id,

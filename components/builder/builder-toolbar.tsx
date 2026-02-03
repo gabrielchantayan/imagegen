@@ -4,10 +4,45 @@ import { useEffect, useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SettingsDropdown } from "./settings-dropdown";
 import { use_builder_store } from "@/lib/stores/builder-store";
-import { submit_generation } from "@/lib/hooks/use-generation";
+import { submit_generation, type ComponentUsedInput } from "@/lib/hooks/use-generation";
 import { SavePromptModal } from "@/components/library/save-prompt-modal";
 import Link from "next/link";
 import { Sparkles, Save, Trash2, History, Library, BarChart3 } from "lucide-react";
+import type { Component } from "@/lib/types/database";
+
+// Helper to collect all selected components for tagging
+const collect_components_used = (
+  subjects: { id: string; selections: Record<string, Component[]> }[],
+  shared_selections: Record<string, Component[]>
+): ComponentUsedInput[] => {
+  const components: ComponentUsedInput[] = [];
+
+  // Collect from all subjects
+  for (const subject of subjects) {
+    for (const [category_id, category_components] of Object.entries(subject.selections)) {
+      for (const component of category_components) {
+        components.push({
+          id: component.id,
+          name: component.name,
+          category_id,
+        });
+      }
+    }
+  }
+
+  // Collect from shared selections
+  for (const [category_id, category_components] of Object.entries(shared_selections)) {
+    for (const component of category_components) {
+      components.push({
+        id: component.id,
+        name: component.name,
+        category_id,
+      });
+    }
+  }
+
+  return components;
+};
 
 export const BuilderToolbar = () => {
   const [save_modal_open, set_save_modal_open] = useState(false);
@@ -18,6 +53,8 @@ export const BuilderToolbar = () => {
   const queue_position = use_builder_store((s) => s.queue_position);
   const settings = use_builder_store((s) => s.settings);
   const selected_reference_ids = use_builder_store((s) => s.selected_reference_ids);
+  const subjects = use_builder_store((s) => s.subjects);
+  const shared_selections = use_builder_store((s) => s.shared_selections);
   const set_generation_status = use_builder_store((s) => s.set_generation_status);
   const set_queue_position = use_builder_store((s) => s.set_queue_position);
   const set_generation_error = use_builder_store((s) => s.set_generation_error);
@@ -65,11 +102,15 @@ export const BuilderToolbar = () => {
     set_generation_status("queued");
     set_generation_error(null);
 
+    // Collect all selected components for tagging
+    const components_used = collect_components_used(subjects, shared_selections);
+
     try {
       const result = await submit_generation(composed_prompt, {
         aspect_ratio: settings.aspect_ratio,
         count: settings.image_count,
         reference_photo_ids: selected_reference_ids.length > 0 ? selected_reference_ids : undefined,
+        components_used: components_used.length > 0 ? components_used : undefined,
       });
 
       generation_id_ref.current = result.generation_id;
@@ -81,7 +122,7 @@ export const BuilderToolbar = () => {
       set_generation_status("failed");
       set_generation_error(error instanceof Error ? error.message : "Failed to submit generation");
     }
-  }, [composed_prompt, settings, selected_reference_ids, set_generation_status, set_generation_error, set_queue_position, poll_status]);
+  }, [composed_prompt, settings, selected_reference_ids, subjects, shared_selections, set_generation_status, set_generation_error, set_queue_position, poll_status]);
 
   const handle_save_prompt = () => {
     set_save_modal_open(true);

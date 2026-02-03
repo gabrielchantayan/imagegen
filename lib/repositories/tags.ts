@@ -1,4 +1,5 @@
 import { get_db } from "../db";
+import type { ComponentUsed } from "../types/database";
 
 export type GenerationTag = {
   id: number;
@@ -109,13 +110,55 @@ export const extract_tags_from_prompt = (
   return tags;
 };
 
+// Category prefix mapping for component-based tags
+const COMPONENT_CATEGORY_PREFIXES: Record<string, string> = {
+  characters: "char",
+  physical_traits: "trait",
+  jewelry: "jewelry",
+  wardrobe: "wardrobe",
+  wardrobe_tops: "top",
+  wardrobe_bottoms: "bottom",
+  wardrobe_footwear: "footwear",
+  poses: "pose",
+  scenes: "scene",
+  backgrounds: "bg",
+  camera: "camera",
+  ban_lists: "ban",
+};
+
+// Extract tags from components_used array
+export const extract_tags_from_components = (
+  components: ComponentUsed[]
+): { tag: string; category: string }[] => {
+  const tags: { tag: string; category: string }[] = [];
+
+  const normalize = (value: string): string => {
+    return value.toLowerCase().replace(/\s+/g, "-").slice(0, 50);
+  };
+
+  for (const component of components) {
+    const prefix = COMPONENT_CATEGORY_PREFIXES[component.category_id] || component.category_id;
+    tags.push({
+      tag: `${prefix}:${normalize(component.name)}`,
+      category: component.category_id,
+    });
+  }
+
+  return tags;
+};
+
 // Create tags for a generation
 export const create_tags_for_generation = (
   generation_id: string,
-  prompt_json: Record<string, unknown>
+  prompt_json: Record<string, unknown>,
+  components_used?: ComponentUsed[] | null
 ): GenerationTag[] => {
   const db = get_db();
-  const tags = extract_tags_from_prompt(prompt_json);
+
+  // Prefer component-based tags if available, fall back to prompt extraction
+  const tags = components_used && components_used.length > 0
+    ? extract_tags_from_components(components_used)
+    : extract_tags_from_prompt(prompt_json);
 
   const stmt = db.prepare(
     "INSERT INTO generation_tags (generation_id, tag, category) VALUES (?, ?, ?)"

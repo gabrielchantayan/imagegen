@@ -3,7 +3,7 @@ import path from "path";
 
 import { get_db, generate_id } from "../db";
 import { now, paginate, type PaginatedResult } from "../db-helpers";
-import type { Generation, GenerationStatus, GenerationWithFavorite } from "../types/database";
+import type { Generation, GenerationStatus, GenerationWithFavorite, ComponentUsed } from "../types/database";
 
 type RawGeneration = {
   id: string;
@@ -16,6 +16,7 @@ type RawGeneration = {
   completed_at: string | null;
   reference_photo_ids: string | null;
   used_fallback: number;
+  components_used: string | null;
 };
 
 const parse_generation = (row: RawGeneration): Generation => {
@@ -24,25 +25,28 @@ const parse_generation = (row: RawGeneration): Generation => {
     prompt_json: JSON.parse(row.prompt_json),
     reference_photo_ids: row.reference_photo_ids ? JSON.parse(row.reference_photo_ids) : null,
     used_fallback: row.used_fallback === 1,
+    components_used: row.components_used ? JSON.parse(row.components_used) : null,
   };
 };
 
 export const create_generation = (
   prompt_json: Record<string, unknown>,
-  reference_photo_ids?: string[]
+  reference_photo_ids?: string[],
+  components_used?: ComponentUsed[]
 ): Generation => {
   const db = get_db();
   const id = generate_id();
   const timestamp = now();
 
   db.prepare(`
-    INSERT INTO generations (id, prompt_json, status, created_at, reference_photo_ids)
-    VALUES (?, ?, 'pending', ?, ?)
+    INSERT INTO generations (id, prompt_json, status, created_at, reference_photo_ids, components_used)
+    VALUES (?, ?, 'pending', ?, ?, ?)
   `).run(
     id,
     JSON.stringify(prompt_json),
     timestamp,
-    reference_photo_ids && reference_photo_ids.length > 0 ? JSON.stringify(reference_photo_ids) : null
+    reference_photo_ids && reference_photo_ids.length > 0 ? JSON.stringify(reference_photo_ids) : null,
+    components_used && components_used.length > 0 ? JSON.stringify(components_used) : null
   );
 
   return get_generation(id)!;

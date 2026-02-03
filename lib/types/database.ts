@@ -27,6 +27,12 @@ export type SavedPrompt = {
 
 export type GenerationStatus = "pending" | "generating" | "completed" | "failed";
 
+export type ComponentUsed = {
+  id: string;
+  name: string;
+  category_id: string;
+};
+
 export type Generation = {
   id: string;
   prompt_json: Record<string, unknown>;
@@ -38,6 +44,7 @@ export type Generation = {
   completed_at: string | null;
   reference_photo_ids: string[] | null;
   used_fallback: boolean;
+  components_used: ComponentUsed[] | null;
 };
 
 export type QueueStatus = "queued" | "processing" | "completed" | "failed";
