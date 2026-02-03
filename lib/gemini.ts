@@ -120,6 +120,7 @@ IDENTITY PRESERVATION (MANDATORY):
 -   **CONSISTENCY**: The subject must be instantly recognizable as the same being from the reference, just in a new setting.
 -   **DO NOT**: Do not genericize the face. Do not "beautify" or alter the unique topology of the reference face.
 -   **DO**: Treat the reference face as a rigid 3D model that must be rendered into the new scene.
+-   **ACCESSORIES**: PRESERVE all external accessories and appendages from the reference: glasses, hats, horns, ears, headwear, jewelry, face paint, masks, or any other items attached to or near the head. These are PART OF THE CHARACTER'S IDENTITY.
 
 PROMPT PAYLOAD (The scene to render):
 `;
@@ -228,6 +229,7 @@ Transfer the facial identity from **Image 2 (Source Reference)** onto the body/s
 IMAGE 1 (TARGET) - THE "STAGE":
 -   This provides the lighting, pose, angle, skin texture, and environment.
 -   Retain the emotional expression and head tilt of this image, but map the *features* of Image 2 onto it.
+-   PRESERVE all external accessories and appendages from this image: glasses, hats, horns, ears, headwear, jewelry, face paint, masks, or any other items attached to or near the head. These elements are PART OF THE CHARACTER and must remain intact.
 
 IMAGE 2 (SOURCE) - THE "ACTOR":
 -   This contains the REQUIRED facial geometry.
