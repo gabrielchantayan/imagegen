@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { jsonrepair } from 'jsonrepair';
 
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -12,15 +12,23 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Wrench, Sparkles, Send } from 'lucide-react';
+import { Wrench, Sparkles, Send, User, Plus, X } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Loader2 } from 'lucide-react';
+import { ReferencePickerModal } from '@/components/references/reference-picker-modal';
+import {
+  use_references,
+  attach_reference_api,
+  detach_reference_api,
+} from '@/lib/hooks/use-references';
 import type { Component, Category } from '@/lib/types/database';
 import { cn } from '@/lib/utils';
+
+const REFERENCE_CATEGORIES = ['characters', 'physical_traits'];
 
 type ComponentEditorProps = {
   open: boolean;
@@ -54,6 +62,23 @@ export const ComponentEditor = ({
   const [magic_loading, set_magic_loading] = useState(false);
   const [magic_error, set_magic_error] = useState('');
   const [magic_open, set_magic_open] = useState(false);
+
+  // Reference Linking State
+  const [picker_open, set_picker_open] = useState(false);
+  const [reference_saving, set_reference_saving] = useState(false);
+  const { references, component_defaults, mutate: mutate_references } = use_references();
+
+  const category_id = component?.category_id ?? category?.id ?? '';
+  const supports_references = REFERENCE_CATEGORIES.includes(category_id);
+
+  const linked_reference_ids = useMemo(() => {
+    if (!component?.id) return [];
+    return component_defaults[component.id] ?? [];
+  }, [component?.id, component_defaults]);
+
+  const linked_references = useMemo(() => {
+    return references.filter((ref) => linked_reference_ids.includes(ref.id));
+  }, [references, linked_reference_ids]);
 
   // Reset form when component/open changes
   useEffect(() => {
@@ -110,6 +135,50 @@ export const ComponentEditor = ({
       set_json_error('');
     } catch {
       set_json_error('Could not repair JSON');
+    }
+  };
+
+  const handle_save_references = async (new_ids: string[]) => {
+    if (!component?.id) return;
+
+    set_reference_saving(true);
+    try {
+      const current_ids = new Set(linked_reference_ids);
+      const new_id_set = new Set(new_ids);
+
+      // Detach removed references
+      for (const id of current_ids) {
+        if (!new_id_set.has(id)) {
+          await detach_reference_api(component.id, id);
+        }
+      }
+
+      // Attach new references
+      for (const id of new_id_set) {
+        if (!current_ids.has(id)) {
+          await attach_reference_api(component.id, id);
+        }
+      }
+
+      await mutate_references();
+    } catch (err) {
+      set_json_error(err instanceof Error ? err.message : 'Failed to update references');
+    } finally {
+      set_reference_saving(false);
+    }
+  };
+
+  const handle_remove_reference = async (reference_id: string) => {
+    if (!component?.id) return;
+
+    set_reference_saving(true);
+    try {
+      await detach_reference_api(component.id, reference_id);
+      await mutate_references();
+    } catch (err) {
+      set_json_error(err instanceof Error ? err.message : 'Failed to remove reference');
+    } finally {
+      set_reference_saving(false);
     }
   };
 
@@ -204,6 +273,69 @@ export const ComponentEditor = ({
                   className="bg-background min-h-[120px] resize-none"
                 />
               </div>
+
+              {/* Reference Linking - only for characters and physical_traits */}
+              {supports_references && is_editing && (
+                <div className="space-y-3">
+                  <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Face References
+                  </Label>
+                  <p className="text-xs text-muted-foreground -mt-1">
+                    Linked references will auto-select when this component is used
+                  </p>
+
+                  {linked_references.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {linked_references.map((ref) => (
+                        <div
+                          key={ref.id}
+                          className="group relative flex items-center gap-2 p-1.5 pr-2 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="size-8 rounded overflow-hidden shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={ref.image_path}
+                              alt={ref.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <span className="text-xs font-medium truncate max-w-[80px]">
+                            {ref.name}
+                          </span>
+                          <button
+                            onClick={() => handle_remove_reference(ref.id)}
+                            disabled={reference_saving}
+                            className="size-4 rounded-full bg-muted hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center transition-colors"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 p-3 rounded-lg border border-dashed bg-muted/20 text-muted-foreground">
+                      <User className="size-4" />
+                      <span className="text-xs">No references linked</span>
+                    </div>
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => set_picker_open(true)}
+                    disabled={reference_saving}
+                    className="w-full"
+                  >
+                    {reference_saving ? (
+                      <Loader2 className="size-4 mr-2 animate-spin" />
+                    ) : (
+                      <Plus className="size-4 mr-2" />
+                    )}
+                    {linked_references.length > 0 ? 'Edit References' : 'Link References'}
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Right: JSON Data */}
@@ -322,6 +454,17 @@ export const ComponentEditor = ({
           </div>
         </div>
       </AlertDialogContent>
+
+      {/* Reference Picker Modal */}
+      {supports_references && is_editing && (
+        <ReferencePickerModal
+          open={picker_open}
+          on_open_change={set_picker_open}
+          selected_ids={linked_reference_ids}
+          on_save={handle_save_references}
+          title={`Link References to ${component?.name}`}
+        />
+      )}
     </AlertDialog>
   );
 };
