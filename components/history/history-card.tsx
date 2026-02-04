@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Star, Check, User, RefreshCw, AlertTriangle } from "lucide-react";
+import { Star, Check, User, RefreshCw, AlertTriangle, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { GenerationWithFavorite } from "@/lib/types/database";
@@ -102,6 +102,14 @@ export const HistoryCard = ({
       >
         <span>{new Date(item.created_at).toLocaleDateString()}</span>
         <div className="flex items-center gap-1">
+          {item.parent_id && (
+            <span
+              className="flex items-center bg-violet-500/70 rounded px-1 py-0.5"
+              title="AI Remix"
+            >
+              <Sparkles className="size-3" />
+            </span>
+          )}
           {item.reference_photo_ids && item.reference_photo_ids.length > 0 && (
             <span
               className="flex items-center gap-0.5 bg-black/50 rounded px-1 py-0.5"
