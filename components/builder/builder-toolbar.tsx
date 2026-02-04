@@ -136,6 +136,7 @@ export const BuilderToolbar = () => {
   const polling_ref = useRef<NodeJS.Timeout | null>(null);
   const polling_start_ref = useRef<number | null>(null);
   const error_count_ref = useRef<number>(0);
+  const completed_ref = useRef<boolean>(false);
 
   // Max polling duration: 5 minutes
   const MAX_POLLING_DURATION_MS = 5 * 60 * 1000;
@@ -149,10 +150,14 @@ export const BuilderToolbar = () => {
     }
     polling_start_ref.current = null;
     error_count_ref.current = 0;
+    completed_ref.current = true;
   }, []);
 
   const poll_status = useCallback(async () => {
     if (!generation_id_ref.current) return;
+
+    // Skip if we've already completed/failed (prevents race conditions with in-flight requests)
+    if (completed_ref.current) return;
 
     // Check for timeout
     if (polling_start_ref.current && Date.now() - polling_start_ref.current > MAX_POLLING_DURATION_MS) {
@@ -167,6 +172,9 @@ export const BuilderToolbar = () => {
     try {
       const res = await fetch(`/api/generate/${generation_id_ref.current}/status`);
       const data = await res.json();
+
+      // Double-check we haven't completed while waiting for this fetch
+      if (completed_ref.current) return;
 
       // Reset error count on successful fetch
       error_count_ref.current = 0;
@@ -227,6 +235,7 @@ export const BuilderToolbar = () => {
 
       polling_start_ref.current = Date.now();
       error_count_ref.current = 0;
+      completed_ref.current = false;
       polling_ref.current = setInterval(poll_status, 2000);
       poll_status();
     } catch (error) {

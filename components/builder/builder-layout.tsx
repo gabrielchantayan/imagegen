@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import { use_builder_store } from "@/lib/stores/builder-store";
 import { ReferenceSyncProvider } from "./reference-sync-provider";
@@ -17,10 +17,16 @@ export const BuilderLayout = () => {
   const [preview_tab, set_preview_tab] = useState<"json" | "image">("json");
   const generation_status = use_builder_store((s) => s.generation_status);
   const last_generated_image = use_builder_store((s) => s.last_generated_image);
+  const last_switched_image_ref = useRef<string | null>(null);
 
-  // Auto-switch to image tab when generation completes
+  // Auto-switch to image tab when generation completes (only once per new image)
   useEffect(() => {
-    if (generation_status === "completed" && last_generated_image) {
+    if (
+      generation_status === "completed" &&
+      last_generated_image &&
+      last_generated_image !== last_switched_image_ref.current
+    ) {
+      last_switched_image_ref.current = last_generated_image;
       set_preview_tab("image");
     }
   }, [generation_status, last_generated_image]);
