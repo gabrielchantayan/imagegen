@@ -49,6 +49,8 @@ export type Generation = {
   used_fallback: boolean;
   face_swap_failed: boolean;
   components_used: ComponentUsed[] | null;
+  parent_id: string | null;
+  edit_instructions: string | null;
 };
 
 export type QueueStatus = "queued" | "processing" | "completed" | "failed";
@@ -64,6 +66,8 @@ export type QueueItem = {
   inline_reference_paths: string[] | null;
   google_search: boolean;
   safety_override: boolean;
+  remix_source_id: string | null;
+  edit_instructions: string | null;
 };
 
 export type SessionState = {
