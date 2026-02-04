@@ -50,6 +50,7 @@ type HistoryDetailPanelProps = {
   on_close: () => void;
   total_count: number;
   on_update?: () => void;
+  on_select_id?: (id: string) => void;
 };
 
 export const HistoryDetailPanel = ({
@@ -60,6 +61,7 @@ export const HistoryDetailPanel = ({
   on_close,
   total_count,
   on_update,
+  on_select_id,
 }: HistoryDetailPanelProps) => {
   if (state.mode === "empty") {
     return <EmptyState total_count={total_count} />;
@@ -83,6 +85,7 @@ export const HistoryDetailPanel = ({
       on_use_prompt={on_use_prompt}
       on_close={on_close}
       on_update={on_update}
+      on_select_id={on_select_id}
     />
   );
 };
@@ -379,6 +382,7 @@ const SingleState = ({
   on_delete,
   on_use_prompt,
   on_update,
+  on_select_id,
 }: {
   item: GenerationWithFavorite;
   on_toggle_favorite: (id: string) => void;
@@ -386,6 +390,7 @@ const SingleState = ({
   on_use_prompt: (prompt: Record<string, unknown>) => void;
   on_close: () => void;
   on_update?: () => void;
+  on_select_id?: (id: string) => void;
 }) => {
   const router = useRouter();
   const { restore_from_generation } = use_builder_actions();
@@ -721,12 +726,13 @@ const SingleState = ({
               )}
 
               {/* Version timeline */}
-              <div className="flex items-center gap-1 overflow-x-auto pb-2">
+              <div className="flex flex-wrap items-center gap-1 pb-2">
                 {lineage.ancestors.map((ancestor, idx) => (
                   <div
                     key={ancestor.id}
-                    className="relative shrink-0 cursor-pointer group"
+                    className="relative cursor-pointer group"
                     title={`Version ${idx + 1}${ancestor.edit_instructions ? `: ${ancestor.edit_instructions}` : ""}`}
+                    onClick={() => on_select_id?.(ancestor.id)}
                   >
                     <div className="w-10 h-14 rounded overflow-hidden border border-muted-foreground/20 hover:border-primary transition-colors">
                       {ancestor.image_path && (
@@ -745,11 +751,11 @@ const SingleState = ({
                 ))}
 
                 {lineage.ancestors.length > 0 && (
-                  <div className="w-2 h-px bg-muted-foreground/30 shrink-0" />
+                  <div className="w-2 h-px bg-muted-foreground/30" />
                 )}
 
                 {/* Current version - highlighted */}
-                <div className="relative shrink-0">
+                <div className="relative">
                   <div className="w-10 h-14 rounded overflow-hidden border-2 border-primary">
                     {item.image_path && (
                       /* eslint-disable-next-line @next/next/no-img-element */
@@ -766,14 +772,15 @@ const SingleState = ({
                 </div>
 
                 {lineage.children.length > 0 && (
-                  <div className="w-2 h-px bg-muted-foreground/30 shrink-0" />
+                  <div className="w-2 h-px bg-muted-foreground/30" />
                 )}
 
                 {lineage.children.map((child) => (
                   <div
                     key={child.id}
-                    className="relative shrink-0 cursor-pointer group"
+                    className="relative cursor-pointer group"
                     title={child.edit_instructions ? `Edit: ${child.edit_instructions}` : "Child version"}
+                    onClick={() => on_select_id?.(child.id)}
                   >
                     <div className="w-10 h-14 rounded overflow-hidden border border-muted-foreground/20 hover:border-primary transition-colors">
                       {child.image_path && (

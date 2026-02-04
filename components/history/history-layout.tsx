@@ -166,6 +166,30 @@ export const HistoryLayout = () => {
     }
   }, [selected_ids, items, open_compare]);
 
+  // Handle selecting a generation by ID (for lineage navigation)
+  const handle_select_id = useCallback(
+    async (id: string) => {
+      // First check if the item is in the current list
+      const existing_item = items.find((i) => i.id === id);
+      if (existing_item) {
+        set_detail_item(existing_item);
+        return;
+      }
+
+      // Otherwise fetch it from the API
+      try {
+        const res = await fetch(`/api/history/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          set_detail_item(data.generation);
+        }
+      } catch (err) {
+        console.error("Failed to fetch generation:", err);
+      }
+    },
+    [items, set_detail_item]
+  );
+
   // Keyboard shortcuts
   use_history_keyboard_shortcuts({
     is_select_mode,
@@ -235,6 +259,7 @@ export const HistoryLayout = () => {
               on_close={() => set_detail_item(null)}
               total_count={total}
               on_update={mutate}
+              on_select_id={handle_select_id}
             />
           </ResizablePanel>
         </ResizablePanelGroup>
