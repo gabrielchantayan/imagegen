@@ -5,7 +5,7 @@ import { get_next_in_queue, update_queue_status } from "./queue";
 import { update_generation, get_generation } from "./repositories/generations";
 import { create_tags_for_generation } from "./repositories/tags";
 import { get_references_by_ids } from "./repositories/references";
-import { generate_image, face_swap_edit, type ReferenceImage } from "./gemini";
+import { generate_image, face_swap_edit, remix_image, type ReferenceImage } from "./gemini";
 import { save_image } from "./image-storage";
 import {
   acquire_lock,
@@ -123,6 +123,70 @@ const process_single_item = async (item: ReturnType<typeof get_next_in_queue>): 
     if (item.inline_reference_paths && item.inline_reference_paths.length > 0) {
       const inline_refs = await load_inline_references(item.inline_reference_paths, log);
       reference_images = [...reference_images, ...inline_refs];
+    }
+
+    // Handle remix: if this is a remix, process it differently
+    if (item.remix_source_id && item.edit_instructions) {
+      log.info("Processing as remix", { source_id: item.remix_source_id });
+
+      const source_gen = get_generation(item.remix_source_id);
+      if (!source_gen || !source_gen.image_path) {
+        throw new Error("Remix source generation not found or has no image");
+      }
+
+      const source_image_path = path.join(process.cwd(), "public", source_gen.image_path);
+      const source_image = await readFile(source_image_path);
+      const source_mime_type = get_mime_type_from_path(source_gen.image_path);
+
+      // Try remix with one retry on failure
+      let remix_result = await remix_image(
+        source_image,
+        source_mime_type,
+        item.edit_instructions,
+        { safety_override: item.safety_override }
+      );
+
+      // Retry once if first attempt failed
+      if (!remix_result.success) {
+        log.info("Remix failed, retrying once", { error: remix_result.error });
+        remix_result = await remix_image(
+          source_image,
+          source_mime_type,
+          item.edit_instructions,
+          { safety_override: item.safety_override }
+        );
+      }
+
+      if (remix_result.success && remix_result.image) {
+        const image_path = await save_image(remix_result.image, remix_result.mime_type!);
+
+        if (item.generation_id) {
+          log.info("Remix completed", { image_path });
+
+          update_generation(item.generation_id, {
+            status: "completed",
+            image_path,
+            api_response_text: undefined,
+            completed_at: true,
+          });
+        }
+
+        update_queue_status(item.id, "completed", { completed_at: true });
+        return true;
+      } else {
+        log.error("Remix failed after retry", { error: remix_result.error });
+
+        if (item.generation_id) {
+          update_generation(item.generation_id, {
+            status: "failed",
+            error_message: remix_result.error,
+            completed_at: true,
+          });
+        }
+
+        update_queue_status(item.id, "failed", { completed_at: true });
+        return false;
+      }
     }
 
     log.debug("Calling Gemini API", { reference_count: reference_images.length });

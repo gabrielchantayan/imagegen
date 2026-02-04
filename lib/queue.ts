@@ -17,6 +17,8 @@ type RawQueueItem = {
   inline_reference_paths: string | null;
   google_search: number;
   safety_override: number;
+  remix_source_id: string | null;
+  edit_instructions: string | null;
 };
 
 const parse_queue_item = (row: RawQueueItem): QueueItem & { generation_id: string | null } => {
@@ -28,6 +30,8 @@ const parse_queue_item = (row: RawQueueItem): QueueItem & { generation_id: strin
     inline_reference_paths: row.inline_reference_paths ? JSON.parse(row.inline_reference_paths) : null,
     google_search: row.google_search === 1,
     safety_override: row.safety_override === 1,
+    remix_source_id: row.remix_source_id,
+    edit_instructions: row.edit_instructions,
   };
 };
 
@@ -36,6 +40,8 @@ type EnqueueOptions = {
   inline_reference_paths?: string[];
   google_search?: boolean;
   safety_override?: boolean;
+  remix_source_id?: string;
+  edit_instructions?: string;
 };
 
 export const enqueue = (
@@ -48,8 +54,8 @@ export const enqueue = (
   const timestamp = now();
 
   db.prepare(`
-    INSERT INTO generation_queue (id, prompt_json, generation_id, status, created_at, reference_photo_ids, inline_reference_paths, google_search, safety_override)
-    VALUES (?, ?, ?, 'queued', ?, ?, ?, ?, ?)
+    INSERT INTO generation_queue (id, prompt_json, generation_id, status, created_at, reference_photo_ids, inline_reference_paths, google_search, safety_override, remix_source_id, edit_instructions)
+    VALUES (?, ?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id,
     JSON.stringify(prompt_json),
@@ -58,7 +64,9 @@ export const enqueue = (
     options?.reference_photo_ids && options.reference_photo_ids.length > 0 ? JSON.stringify(options.reference_photo_ids) : null,
     options?.inline_reference_paths && options.inline_reference_paths.length > 0 ? JSON.stringify(options.inline_reference_paths) : null,
     options?.google_search ? 1 : 0,
-    options?.safety_override ? 1 : 0
+    options?.safety_override ? 1 : 0,
+    options?.remix_source_id || null,
+    options?.edit_instructions || null
   );
 
   return get_queue_item(id)! as QueueItem & { generation_id: string };

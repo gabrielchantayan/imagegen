@@ -14,6 +14,8 @@ type RawQueueItem = {
   inline_reference_paths: string | null;
   google_search: number;
   safety_override: number;
+  remix_source_id: string | null;
+  edit_instructions: string | null;
 };
 
 export type QueueItemWithPosition = QueueItem & {
@@ -32,6 +34,8 @@ const parse_queue_item = (row: RawQueueItem): QueueItem & { generation_id: strin
     inline_reference_paths: row.inline_reference_paths ? JSON.parse(row.inline_reference_paths) : null,
     google_search: row.google_search === 1,
     safety_override: row.safety_override === 1,
+    remix_source_id: row.remix_source_id,
+    edit_instructions: row.edit_instructions,
   };
 };
 

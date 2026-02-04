@@ -21,6 +21,8 @@ type RawGeneration = {
   used_fallback: number;
   face_swap_failed: number;
   components_used: string | null;
+  parent_id: string | null;
+  edit_instructions: string | null;
 };
 
 const parse_generation = (row: RawGeneration): Generation => {
@@ -32,29 +34,42 @@ const parse_generation = (row: RawGeneration): Generation => {
     used_fallback: row.used_fallback === 1,
     face_swap_failed: row.face_swap_failed === 1,
     components_used: row.components_used ? JSON.parse(row.components_used) : null,
+    parent_id: row.parent_id,
+    edit_instructions: row.edit_instructions,
   };
+};
+
+export type CreateGenerationOptions = {
+  reference_photo_ids?: string[];
+  components_used?: ComponentUsed[];
+  inline_reference_paths?: string[];
+  parent_id?: string;
+  edit_instructions?: string;
 };
 
 export const create_generation = (
   prompt_json: Record<string, unknown>,
   reference_photo_ids?: string[],
   components_used?: ComponentUsed[],
-  inline_reference_paths?: string[]
+  inline_reference_paths?: string[],
+  options?: { parent_id?: string; edit_instructions?: string }
 ): Generation => {
   const db = get_db();
   const id = generate_id();
   const timestamp = now();
 
   db.prepare(`
-    INSERT INTO generations (id, prompt_json, status, created_at, reference_photo_ids, inline_reference_paths, components_used)
-    VALUES (?, ?, 'pending', ?, ?, ?, ?)
+    INSERT INTO generations (id, prompt_json, status, created_at, reference_photo_ids, inline_reference_paths, components_used, parent_id, edit_instructions)
+    VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?)
   `).run(
     id,
     JSON.stringify(prompt_json),
     timestamp,
     reference_photo_ids && reference_photo_ids.length > 0 ? JSON.stringify(reference_photo_ids) : null,
     inline_reference_paths && inline_reference_paths.length > 0 ? JSON.stringify(inline_reference_paths) : null,
-    components_used && components_used.length > 0 ? JSON.stringify(components_used) : null
+    components_used && components_used.length > 0 ? JSON.stringify(components_used) : null,
+    options?.parent_id || null,
+    options?.edit_instructions || null
   );
 
   return get_generation(id)!;
@@ -324,8 +339,93 @@ export const delete_generation = async (id: string): Promise<boolean> => {
     }
   }
 
+  // Update children to point to this generation's parent (preserves lineage chain)
+  // If deleting B in chain A -> B -> C, the chain becomes A -> C
+  db.prepare("UPDATE generations SET parent_id = ? WHERE parent_id = ?").run(
+    generation.parent_id,
+    id
+  );
+
+  // Clear remix_source_id references in queue table
+  db.prepare("UPDATE generation_queue SET remix_source_id = NULL WHERE remix_source_id = ?").run(id);
+
   db.prepare("DELETE FROM favorites WHERE generation_id = ?").run(id);
+  db.prepare("DELETE FROM generation_tags WHERE generation_id = ?").run(id);
   const result = db.prepare("DELETE FROM generations WHERE id = ?").run(id);
 
   return result.changes > 0;
+};
+
+// Lineage queries for remix feature
+
+export type GenerationLineage = {
+  ancestors: Generation[];
+  current: Generation;
+  children: Generation[];
+};
+
+export const get_generation_lineage = (id: string): GenerationLineage | null => {
+  const current = get_generation(id);
+  if (!current) return null;
+
+  const ancestors: Generation[] = [];
+  const children: Generation[] = [];
+
+  // Walk up the parent chain to find all ancestors (only completed with images)
+  let parent_id = current.parent_id;
+  while (parent_id) {
+    const parent = get_generation(parent_id);
+    if (!parent) break;
+    // Only include completed generations with images in lineage
+    if (parent.status === "completed" && parent.image_path) {
+      ancestors.unshift(parent); // Add to beginning so root is first
+    }
+    parent_id = parent.parent_id;
+  }
+
+  // Find direct children (only completed with images)
+  const db = get_db();
+  const child_rows = db.prepare(
+    "SELECT * FROM generations WHERE parent_id = ? AND status = 'completed' AND image_path IS NOT NULL ORDER BY created_at ASC"
+  ).all(id) as RawGeneration[];
+
+  for (const row of child_rows) {
+    children.push(parse_generation(row));
+  }
+
+  return { ancestors, current, children };
+};
+
+export const get_generation_children = (id: string): Generation[] => {
+  const db = get_db();
+  const rows = db.prepare(
+    "SELECT * FROM generations WHERE parent_id = ? AND status = 'completed' AND image_path IS NOT NULL ORDER BY created_at ASC"
+  ).all(id) as RawGeneration[];
+
+  return rows.map(parse_generation);
+};
+
+export const update_generation_image = (
+  id: string,
+  image_path: string,
+  edit_instructions: string,
+  pre_remix_image_path?: string
+): Generation | null => {
+  const db = get_db();
+
+  if (pre_remix_image_path) {
+    db.prepare(`
+      UPDATE generations
+      SET image_path = ?, edit_instructions = ?, pre_swap_image_path = ?
+      WHERE id = ?
+    `).run(image_path, edit_instructions, pre_remix_image_path, id);
+  } else {
+    db.prepare(`
+      UPDATE generations
+      SET image_path = ?, edit_instructions = ?
+      WHERE id = ?
+    `).run(image_path, edit_instructions, id);
+  }
+
+  return get_generation(id);
 };

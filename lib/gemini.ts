@@ -204,6 +204,111 @@ export type FaceSwapResult = {
   error?: string;
 };
 
+export type RemixResult = {
+  success: boolean;
+  image?: Buffer;
+  mime_type?: string;
+  error?: string;
+};
+
+export const remix_image = async (
+  source_image: Buffer,
+  source_mime_type: string,
+  edit_instructions: string,
+  options?: { safety_override?: boolean }
+): Promise<RemixResult> => {
+  try {
+    const model_name =
+      process.env.GEMINI_MODEL || "gemini-2.0-flash-exp-image-generation";
+
+    const generation_config: Record<string, unknown> = {
+      responseModalities: ["IMAGE", "TEXT"],
+      imageConfig: {
+        aspectRatio: "3:4",
+        imageSize: "4K",
+      },
+    };
+
+    // Add safety settings override if enabled
+    if (options?.safety_override) {
+      generation_config.safetySettings = [
+        {
+          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+      ];
+    }
+
+    const edit_prompt = `IMAGE EDITING TASK
+
+You are performing a targeted edit on the provided image. Make ONLY the requested changes while preserving everything else exactly.
+
+SOURCE IMAGE: The image above is your starting point.
+
+EDIT INSTRUCTIONS:
+${edit_instructions}
+
+GUIDELINES:
+- Make ONLY the changes specified above
+- Preserve exact composition, pose, lighting, and style
+- Do not add, remove, or modify elements not mentioned
+- Result should look like a natural edit, not a regeneration
+
+OUTPUT: Single edited image with requested changes applied.`;
+
+    const parts = [
+      {
+        inlineData: {
+          data: source_image.toString("base64"),
+          mimeType: source_mime_type,
+        },
+      },
+      { text: edit_prompt },
+    ];
+
+    const result = await genAI.models.generateContent({
+      model: model_name,
+      contents: [{ role: "user", parts }],
+      config: generation_config,
+    });
+
+    for (const candidate of result.candidates || []) {
+      for (const part of candidate.content?.parts || []) {
+        if (part.inlineData) {
+          return {
+            success: true,
+            image: Buffer.from(part.inlineData.data!, "base64"),
+            mime_type: part.inlineData.mimeType || "image/png",
+          };
+        }
+      }
+    }
+
+    return {
+      success: false,
+      error: "Remix did not return an image",
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return {
+      success: false,
+      error: message,
+    };
+  }
+};
+
 export const face_swap_edit = async (
   base_image: Buffer,
   base_mime_type: string,
