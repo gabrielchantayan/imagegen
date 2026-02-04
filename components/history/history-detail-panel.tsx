@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Star, Trash2, Download, Copy, ImageIcon, Heart, Archive, Plus, X, Clipboard, User, RefreshCw, AlertTriangle, Wand2 } from "lucide-react";
+import { Star, Trash2, Download, Copy, ImageIcon, Heart, Archive, Plus, X, Clipboard, User, RefreshCw, AlertTriangle, Wand2, Sparkles, GitBranch } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { DetailPanelState } from "@/lib/stores/history-store";
-import type { GenerationWithFavorite } from "@/lib/types/database";
+import type { Generation, GenerationWithFavorite } from "@/lib/types/database";
+import { RemixModal } from "./remix-modal";
 import { use_builder_actions } from "@/lib/stores/builder-store";
 import {
   CATEGORY_COLORS,
@@ -396,6 +397,12 @@ const SingleState = ({
   const [is_adding_tag, set_is_adding_tag] = useState(false);
   const [is_remixing, set_is_remixing] = useState(false);
   const [references, set_references] = useState<ReferencePhoto[]>([]);
+  const [show_remix_modal, set_show_remix_modal] = useState(false);
+  const [lineage, set_lineage] = useState<{
+    ancestors: Generation[];
+    current: Generation;
+    children: Generation[];
+  } | null>(null);
 
   // Fetch reference photos if this generation used any
   useEffect(() => {
@@ -416,6 +423,39 @@ const SingleState = ({
       })
       .catch(() => set_references([]));
   }, [item.reference_photo_ids]);
+
+  // Fetch lineage data for version history
+  useEffect(() => {
+    fetch(`/api/history/${item.id}/lineage`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.current) {
+          set_lineage(data);
+        } else {
+          set_lineage(null);
+        }
+      })
+      .catch(() => set_lineage(null));
+  }, [item.id]);
+
+  const handle_ai_remix = async (instructions: string, mode: "fork" | "replace") => {
+    const res = await fetch("/api/remix", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source_id: item.id,
+        edit_instructions: instructions,
+        mode,
+      }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Failed to queue remix");
+    }
+
+    on_update?.();
+  };
 
   const handle_remix = async () => {
     if (is_remixing) return;
@@ -663,6 +703,93 @@ const SingleState = ({
             set_new_tag={set_new_tag}
             is_adding_tag={is_adding_tag}
           />
+
+          {/* Lineage Section - Version History */}
+          {lineage && (lineage.ancestors.length > 0 || lineage.children.length > 0 || item.edit_instructions) && (
+            <div className="mt-3">
+              <div className="flex items-center gap-2 mb-2">
+                <GitBranch className="size-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Version History</span>
+              </div>
+
+              {/* Edit instructions for this version */}
+              {item.edit_instructions && (
+                <div className="mb-2 p-2 rounded bg-muted/50 text-xs">
+                  <span className="text-muted-foreground">Edit: </span>
+                  <span className="italic">&ldquo;{item.edit_instructions}&rdquo;</span>
+                </div>
+              )}
+
+              {/* Version timeline */}
+              <div className="flex items-center gap-1 overflow-x-auto pb-2">
+                {lineage.ancestors.map((ancestor, idx) => (
+                  <div
+                    key={ancestor.id}
+                    className="relative shrink-0 cursor-pointer group"
+                    title={`Version ${idx + 1}${ancestor.edit_instructions ? `: ${ancestor.edit_instructions}` : ""}`}
+                  >
+                    <div className="w-10 h-14 rounded overflow-hidden border border-muted-foreground/20 hover:border-primary transition-colors">
+                      {ancestor.image_path && (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={ancestor.image_path}
+                          alt=""
+                          className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                        />
+                      )}
+                    </div>
+                    {idx < lineage.ancestors.length - 1 && (
+                      <div className="absolute top-1/2 -right-1 w-2 h-px bg-muted-foreground/30" />
+                    )}
+                  </div>
+                ))}
+
+                {lineage.ancestors.length > 0 && (
+                  <div className="w-2 h-px bg-muted-foreground/30 shrink-0" />
+                )}
+
+                {/* Current version - highlighted */}
+                <div className="relative shrink-0">
+                  <div className="w-10 h-14 rounded overflow-hidden border-2 border-primary">
+                    {item.image_path && (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={item.image_path}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[10px] text-primary font-medium whitespace-nowrap">
+                    Current
+                  </div>
+                </div>
+
+                {lineage.children.length > 0 && (
+                  <div className="w-2 h-px bg-muted-foreground/30 shrink-0" />
+                )}
+
+                {lineage.children.map((child) => (
+                  <div
+                    key={child.id}
+                    className="relative shrink-0 cursor-pointer group"
+                    title={child.edit_instructions ? `Edit: ${child.edit_instructions}` : "Child version"}
+                  >
+                    <div className="w-10 h-14 rounded overflow-hidden border border-muted-foreground/20 hover:border-primary transition-colors">
+                      {child.image_path && (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={child.image_path}
+                          alt=""
+                          className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                        />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Prompt JSON */}
@@ -684,6 +811,17 @@ const SingleState = ({
         <div className="p-4 space-y-2">
           <Button
             variant="default"
+            size="sm"
+            className="w-full"
+            onClick={() => set_show_remix_modal(true)}
+            disabled={!item.image_path}
+          >
+            <Sparkles className="size-4 mr-2" />
+            Edit with AI
+          </Button>
+
+          <Button
+            variant="outline"
             size="sm"
             className="w-full"
             onClick={handle_remix}
@@ -737,6 +875,14 @@ const SingleState = ({
           </div>
         </div>
       </div>
+
+      {/* Remix Modal */}
+      <RemixModal
+        open={show_remix_modal}
+        on_open_change={set_show_remix_modal}
+        source={item}
+        on_submit={handle_ai_remix}
+      />
     </div>
   );
 };
