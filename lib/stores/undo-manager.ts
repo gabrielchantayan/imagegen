@@ -3,6 +3,7 @@
  *
  * Implements a history stack for undo/redo functionality.
  * Stores snapshots of the relevant state for restoration.
+ * Uses structuredClone for efficient deep cloning.
  */
 
 import type { Component } from "@/lib/types/database";
@@ -24,7 +25,8 @@ type HistoryEntry = {
   timestamp: number;
 };
 
-const MAX_HISTORY_SIZE = 50;
+// Reduced from 50 to limit memory usage
+const MAX_HISTORY_SIZE = 30;
 
 class UndoManager {
   private past: HistoryEntry[] = [];
@@ -148,9 +150,22 @@ class UndoManager {
 
   /**
    * Deep clone the state to prevent mutation.
+   * Uses structuredClone for better performance than JSON.parse/stringify.
    */
   private clone_state(state: UndoableState): UndoableState {
-    return JSON.parse(JSON.stringify(state));
+    return structuredClone(state);
+  }
+
+  /**
+   * Trim history to reduce memory usage.
+   * Keeps only the most recent entries.
+   */
+  trim(keep_count: number = 10): void {
+    if (this.past.length > keep_count) {
+      this.past = this.past.slice(-keep_count);
+    }
+    // Clear future on trim to free memory
+    this.future = [];
   }
 }
 

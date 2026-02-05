@@ -254,9 +254,15 @@ export const BuilderToolbar = () => {
     on_show_shortcuts: () => set_shortcuts_modal_open(true),
   });
 
+  // Cleanup polling on unmount - use ref directly to avoid dependency issues
   useEffect(() => {
-    return () => stop_polling();
-  }, [stop_polling]);
+    return () => {
+      if (polling_ref.current) {
+        clearInterval(polling_ref.current);
+        polling_ref.current = null;
+      }
+    };
+  }, []);
 
   const is_generating = generation_status === "generating" || generation_status === "queued";
 

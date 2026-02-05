@@ -416,8 +416,9 @@ const SingleState = ({
       return;
     }
 
-    // Fetch all references and filter to the ones used
-    fetch("/api/references")
+    const controller = new AbortController();
+
+    fetch("/api/references", { signal: controller.signal })
       .then((res) => res.json())
       .then((data) => {
         const all_refs = data.references as ReferencePhoto[];
@@ -426,12 +427,20 @@ const SingleState = ({
         );
         set_references(used_refs);
       })
-      .catch(() => set_references([]));
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          set_references([]);
+        }
+      });
+
+    return () => controller.abort();
   }, [item.reference_photo_ids]);
 
   // Fetch lineage data for version history
   useEffect(() => {
-    fetch(`/api/history/${item.id}/lineage`)
+    const controller = new AbortController();
+
+    fetch(`/api/history/${item.id}/lineage`, { signal: controller.signal })
       .then((res) => res.json())
       .then((data) => {
         if (data.current) {
@@ -440,7 +449,13 @@ const SingleState = ({
           set_lineage(null);
         }
       })
-      .catch(() => set_lineage(null));
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          set_lineage(null);
+        }
+      });
+
+    return () => controller.abort();
   }, [item.id]);
 
   const handle_ai_remix = async (instructions: string, mode: "fork" | "replace") => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -30,6 +30,15 @@ import type { GenerationWithFavorite } from "@/lib/types/database";
 export const HistoryLayout = () => {
   const router = useRouter();
   const load_prompt = use_builder_store((s) => s.load_prompt);
+
+  // Track mounted state to prevent state updates after unmount
+  const is_mounted_ref = useRef(true);
+  useEffect(() => {
+    is_mounted_ref.current = true;
+    return () => {
+      is_mounted_ref.current = false;
+    };
+  }, []);
 
   // Sync filters with URL params
   use_history_url_sync();
@@ -179,12 +188,14 @@ export const HistoryLayout = () => {
       // Otherwise fetch it from the API
       try {
         const res = await fetch(`/api/history/${id}`);
-        if (res.ok) {
+        if (res.ok && is_mounted_ref.current) {
           const data = await res.json();
           set_detail_item(data.generation);
         }
       } catch (err) {
-        console.error("Failed to fetch generation:", err);
+        if (is_mounted_ref.current) {
+          console.error("Failed to fetch generation:", err);
+        }
       }
     },
     [items, set_detail_item]

@@ -14,6 +14,28 @@ export const get_db = (): Database.Database => {
   return db;
 };
 
+/**
+ * Closes the database connection and releases resources.
+ * Should be called on server shutdown for graceful cleanup.
+ */
+export const close_db = (): void => {
+  if (db) {
+    db.close();
+    db = null;
+  }
+};
+
+// Register cleanup handlers for graceful shutdown
+if (typeof process !== "undefined") {
+  const cleanup = () => {
+    close_db();
+    process.exit(0);
+  };
+
+  process.on("SIGINT", cleanup);
+  process.on("SIGTERM", cleanup);
+}
+
 export const transaction = <T>(fn: () => T): T => {
   const database = get_db();
   return database.transaction(fn)();

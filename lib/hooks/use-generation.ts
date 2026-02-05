@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 type GenerationStatusResponse = {
   status: "pending" | "generating" | "completed" | "failed";
@@ -12,32 +12,45 @@ type GenerationStatusResponse = {
 export const use_generation = (generation_id: string | null) => {
   const [status, set_status] = useState<GenerationStatusResponse | null>(null);
   const [is_polling, set_is_polling] = useState(false);
-
-  const poll = useCallback(async () => {
-    if (!generation_id) return;
-
-    try {
-      const res = await fetch(`/api/generate/${generation_id}/status`);
-      const data = await res.json();
-      set_status(data);
-
-      if (data.status === "completed" || data.status === "failed") {
-        set_is_polling(false);
-      }
-    } catch (error) {
-      console.error("Failed to poll status:", error);
-    }
-  }, [generation_id]);
+  const abort_controller_ref = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!generation_id || !is_polling) return;
 
-    poll();
+    const controller = new AbortController();
+    abort_controller_ref.current = controller;
 
+    const poll = async () => {
+      if (controller.signal.aborted) return;
+
+      try {
+        const res = await fetch(`/api/generate/${generation_id}/status`, {
+          signal: controller.signal,
+        });
+        const data = await res.json();
+
+        if (!controller.signal.aborted) {
+          set_status(data);
+
+          if (data.status === "completed" || data.status === "failed") {
+            set_is_polling(false);
+          }
+        }
+      } catch (error) {
+        if (error instanceof Error && error.name !== "AbortError") {
+          console.error("Failed to poll status:", error);
+        }
+      }
+    };
+
+    poll();
     const interval = setInterval(poll, 2000);
 
-    return () => clearInterval(interval);
-  }, [generation_id, is_polling, poll]);
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
+  }, [generation_id, is_polling]);
 
   const start_polling = useCallback(() => {
     set_is_polling(true);
