@@ -169,6 +169,18 @@ const process_single_item = async (item: ReturnType<typeof get_next_in_queue>): 
             api_response_text: undefined,
             completed_at: true,
           });
+
+          // Carry over tags from source generation's components/prompt
+          try {
+            const generation = get_generation(item.generation_id);
+            create_tags_for_generation(
+              item.generation_id,
+              item.prompt_json,
+              generation?.components_used
+            );
+          } catch {
+            // Tag creation is non-critical, continue on error
+          }
         }
 
         update_queue_status(item.id, "completed", { completed_at: true });
