@@ -3,10 +3,9 @@
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Star, Trash2, Download, Copy, ImageIcon, Heart, Archive, Plus, X, Clipboard, User, RefreshCw, AlertTriangle, Wand2, Sparkles, GitBranch } from "lucide-react";
+import { Star, Trash2, Download, Copy, ImageIcon, Heart, Archive, X, Clipboard, User, RefreshCw, AlertTriangle, Wand2, Sparkles, GitBranch } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -23,6 +22,7 @@ import {
 import type { DetailPanelState } from "@/lib/stores/history-store";
 import type { Generation, GenerationWithFavorite } from "@/lib/types/database";
 import { RemixModal } from "./remix-modal";
+import { TagAutocompleteInput } from "./tag-autocomplete-input";
 import { use_builder_actions } from "@/lib/stores/builder-store";
 import {
   CATEGORY_COLORS,
@@ -271,15 +271,11 @@ const TagsSection = ({
   tags,
   on_add_tag,
   on_remove_tag,
-  new_tag,
-  set_new_tag,
   is_adding_tag,
 }: {
   tags?: { id: number; tag: string; category: string | null }[];
-  on_add_tag: () => void;
+  on_add_tag: (tag: string, category?: string) => void;
   on_remove_tag: (tag: string) => void;
-  new_tag: string;
-  set_new_tag: (value: string) => void;
   is_adding_tag: boolean;
 }) => {
   // Group tags by category
@@ -350,27 +346,12 @@ const TagsSection = ({
         </div>
       )}
 
-      {/* Add tag input */}
-      <div className="flex items-center gap-1 pt-1">
-        <Input
-          value={new_tag}
-          onChange={(e) => set_new_tag(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") on_add_tag();
-          }}
-          placeholder="Add custom tag..."
-          className="h-6 text-xs px-2 w-32"
-        />
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-6 w-6"
-          onClick={on_add_tag}
-          disabled={is_adding_tag || !new_tag.trim()}
-        >
-          <Plus className="size-3" />
-        </Button>
-      </div>
+      {/* Add tag input with autocomplete */}
+      <TagAutocompleteInput
+        on_add={on_add_tag}
+        is_adding={is_adding_tag}
+        existing_tags={tags?.map((t) => t.tag)}
+      />
     </div>
   );
 };
@@ -398,7 +379,6 @@ const SingleState = ({
     JSON.stringify(item.prompt_json, null, 2)
   );
   const [show_delete_dialog, set_show_delete_dialog] = useState(false);
-  const [new_tag, set_new_tag] = useState("");
   const [is_adding_tag, set_is_adding_tag] = useState(false);
   const [is_remixing, set_is_remixing] = useState(false);
   const [references, set_references] = useState<ReferencePhoto[]>([]);
@@ -524,16 +504,15 @@ const SingleState = ({
     on_delete(item.id);
   };
 
-  const handle_add_tag = async () => {
-    if (!new_tag.trim()) return;
+  const handle_add_tag = async (tag: string, category?: string) => {
+    if (!tag.trim()) return;
     set_is_adding_tag(true);
     try {
       await fetch(`/api/history/${item.id}/tags`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tag: new_tag.trim() }),
+        body: JSON.stringify({ tag: tag.trim(), category }),
       });
-      set_new_tag("");
       on_update?.();
     } catch (e) {
       console.error(e);
@@ -719,8 +698,6 @@ const SingleState = ({
             tags={item.tags}
             on_add_tag={handle_add_tag}
             on_remove_tag={handle_remove_tag}
-            new_tag={new_tag}
-            set_new_tag={set_new_tag}
             is_adding_tag={is_adding_tag}
           />
 

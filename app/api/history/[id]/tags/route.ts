@@ -9,7 +9,7 @@ export const POST = async (
   return with_auth(async () => {
     const { id } = await params;
     const body = await request.json();
-    const { tag } = body;
+    const { tag, category } = body;
 
     if (!tag || typeof tag !== "string") {
       return error_response("Tag is required");
@@ -26,16 +26,18 @@ export const POST = async (
        return success_response({ message: "Tag already exists" });
     }
 
+    const tag_category = (category && typeof category === "string") ? category : "user";
+
     const result = db.prepare(
-      "INSERT INTO generation_tags (generation_id, tag, category) VALUES (?, ?, 'user')"
-    ).run(id, tag);
+      "INSERT INTO generation_tags (generation_id, tag, category) VALUES (?, ?, ?)"
+    ).run(id, tag, tag_category);
 
     return success_response({
       tag: {
         id: Number(result.lastInsertRowid),
         generation_id: id,
         tag,
-        category: 'user'
+        category: tag_category
       }
     });
   });
