@@ -1,13 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { GitFork, Replace, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { GitFork, Replace, Loader2, Bookmark, X, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ModalDialog } from "@/components/ui/modal-dialog";
 import type { GenerationWithFavorite } from "@/lib/types/database";
+import {
+  use_remix_prompts,
+  save_remix_prompt,
+  delete_remix_prompt,
+} from "@/lib/hooks/use-remix-prompts";
 
 type RemixModalProps = {
   open: boolean;
@@ -34,6 +40,17 @@ export const RemixModal = ({
   const [instructions, set_instructions] = useState("");
   const [is_submitting, set_is_submitting] = useState(false);
   const [submit_mode, set_submit_mode] = useState<"fork" | "replace" | null>(null);
+  const [is_saving, set_is_saving] = useState(false);
+  const [is_naming, set_is_naming] = useState(false);
+  const [save_name, set_save_name] = useState("");
+  const name_input_ref = useRef<HTMLInputElement>(null);
+  const { prompts: saved_prompts, mutate } = use_remix_prompts();
+
+  useEffect(() => {
+    if (is_naming) {
+      name_input_ref.current?.select();
+    }
+  }, [is_naming]);
 
   const handle_submit = async (mode: "fork" | "replace") => {
     if (!instructions.trim() || is_submitting) return;
@@ -51,8 +68,42 @@ export const RemixModal = ({
     }
   };
 
-  const handle_example_click = (example: string) => {
-    set_instructions(example);
+  const handle_chip_click = (text: string) => {
+    set_instructions(text);
+  };
+
+  const handle_start_save = () => {
+    const trimmed = instructions.trim();
+    if (!trimmed) return;
+    const default_name = trimmed.length > 40 ? trimmed.slice(0, 40) + "..." : trimmed;
+    set_save_name(default_name);
+    set_is_naming(true);
+  };
+
+  const handle_confirm_save = async () => {
+    const trimmed_name = save_name.trim();
+    const trimmed_instructions = instructions.trim();
+    if (!trimmed_name || !trimmed_instructions || is_saving) return;
+
+    set_is_saving(true);
+    try {
+      await save_remix_prompt({ name: trimmed_name, instructions: trimmed_instructions });
+      await mutate();
+      set_is_naming(false);
+      set_save_name("");
+    } finally {
+      set_is_saving(false);
+    }
+  };
+
+  const handle_cancel_save = () => {
+    set_is_naming(false);
+    set_save_name("");
+  };
+
+  const handle_delete = async (id: string) => {
+    await delete_remix_prompt(id);
+    await mutate();
   };
 
   return (
@@ -109,7 +160,56 @@ export const RemixModal = ({
         {/* Edit instructions */}
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="instructions">Edit Instructions</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="instructions">Edit Instructions</Label>
+              {is_naming ? (
+                <div className="flex items-center gap-1">
+                  <Input
+                    ref={name_input_ref}
+                    value={save_name}
+                    onChange={(e) => set_save_name(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handle_confirm_save();
+                      if (e.key === "Escape") handle_cancel_save();
+                    }}
+                    placeholder="Name..."
+                    className="h-6 text-xs w-40"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    disabled={!save_name.trim() || is_saving}
+                    onClick={handle_confirm_save}
+                  >
+                    {is_saving ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <Check className="size-3" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={handle_cancel_save}
+                  >
+                    <X className="size-3" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs text-muted-foreground"
+                  disabled={!instructions.trim()}
+                  onClick={handle_start_save}
+                >
+                  <Bookmark className="size-3 mr-1" />
+                  Save
+                </Button>
+              )}
+            </div>
             <Textarea
               id="instructions"
               value={instructions}
@@ -119,6 +219,41 @@ export const RemixModal = ({
             />
           </div>
 
+          {saved_prompts.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground">Saved</Label>
+              <div className="flex flex-wrap gap-2">
+                {saved_prompts.map((prompt) => (
+                  <button
+                    key={prompt.id}
+                    type="button"
+                    onClick={() => handle_chip_click(prompt.instructions)}
+                    className="group relative text-xs px-2 py-1 pr-6 rounded-md bg-primary/10 hover:bg-primary/20 text-foreground transition-colors"
+                  >
+                    {prompt.name}
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handle_delete(prompt.id);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.stopPropagation();
+                          handle_delete(prompt.id);
+                        }
+                      }}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-primary/20"
+                    >
+                      <X className="size-3" />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label className="text-sm text-muted-foreground">Examples</Label>
             <div className="flex flex-wrap gap-2">
@@ -126,7 +261,7 @@ export const RemixModal = ({
                 <button
                   key={example}
                   type="button"
-                  onClick={() => handle_example_click(example)}
+                  onClick={() => handle_chip_click(example)}
                   className="text-xs px-2 py-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {example}

@@ -108,6 +108,14 @@ export type ReferencePhotoWithComponents = ReferencePhoto & {
   component_ids: string[];
 };
 
+export type SavedRemixPrompt = {
+  id: string;
+  name: string;
+  instructions: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ComponentReferenceDefault = {
   component_id: string;
   reference_photo_id: string;
