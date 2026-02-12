@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { QueueMetricsBar } from "./queue-metrics-bar";
 import { QueueList } from "./queue-list";
@@ -7,30 +8,25 @@ import { QueueHistory } from "./queue-history";
 import { use_queue_dashboard } from "@/lib/hooks/use-queue-dashboard";
 import { Layers, History, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { ToolbarSlots } from "@/components/shared/toolbar-slots";
 
 export const QueueDashboard = () => {
   const { processing_items, queued_items, metrics, is_loading, mutate } = use_queue_dashboard();
 
+  const left_slot = useMemo(() => (
+    <h1 className="text-lg font-semibold">Queue Dashboard</h1>
+  ), []);
+
+  const right_slot = useMemo(() => (
+    <Button variant="outline" size="sm" onClick={() => mutate()} disabled={is_loading}>
+      <RefreshCw className={`size-4 mr-2 ${is_loading ? "animate-spin" : ""}`} />
+      Refresh
+    </Button>
+  ), [mutate, is_loading]);
+
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/builder" className="text-muted-foreground hover:text-foreground">
-              <Button variant="ghost" size="sm">
-                Back to Builder
-              </Button>
-            </Link>
-            <div className="h-4 w-px bg-border" />
-            <h1 className="text-xl font-semibold">Queue Dashboard</h1>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => mutate()} disabled={is_loading}>
-            <RefreshCw className={`size-4 mr-2 ${is_loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
-        </div>
-      </header>
+    <div className="h-full overflow-auto bg-background">
+      <ToolbarSlots left={left_slot} right={right_slot} />
 
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         <QueueMetricsBar metrics={metrics} />

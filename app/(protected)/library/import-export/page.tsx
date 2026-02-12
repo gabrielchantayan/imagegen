@@ -1,13 +1,12 @@
-// app/(protected)/library/import-export/page.tsx
 'use client';
 
-import { useState, useRef } from 'react';
-import Link from 'next/link';
+import { useState, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Download, Upload, ArrowLeft } from 'lucide-react';
+import { Download, Upload } from 'lucide-react';
+import { ToolbarSlots } from '@/components/shared/toolbar-slots';
 
 export default function ImportExportPage() {
   const file_input_ref = useRef<HTMLInputElement>(null);
@@ -79,16 +78,13 @@ export default function ImportExportPage() {
     }
   };
 
+  const left_slot = useMemo(() => (
+    <h1 className="text-lg font-semibold">Import / Export</h1>
+  ), []);
+
   return (
     <div className="container py-8">
-      <div className="flex items-center gap-4 mb-6">
-        <Link href="/library">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="size-4" />
-          </Button>
-        </Link>
-        <h1 className="text-2xl font-bold">Import / Export</h1>
-      </div>
+      <ToolbarSlots left={left_slot} />
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Export */}
