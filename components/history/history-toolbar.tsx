@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowLeft, CheckSquare, Square, GitCompare, X, HelpCircle } from "lucide-react";
+import { useMemo } from "react";
+import { CheckSquare, Square, GitCompare, X, HelpCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ToolbarSlots } from "@/components/shared/toolbar-slots";
 import { use_history_store } from "@/lib/stores/history-store";
 
 type HistoryToolbarProps = {
@@ -25,84 +26,75 @@ export const HistoryToolbar = ({
 }: HistoryToolbarProps) => {
   const set_shortcuts_modal_open = use_history_store((s) => s.set_shortcuts_modal_open);
 
-  return (
-    <div className="h-14 border-b flex items-center justify-between px-4 shrink-0">
-      {/* Left section */}
-      <div className="flex items-center gap-4">
-        <Link href="/builder">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="size-4 mr-2" />
-            Back
-          </Button>
-        </Link>
+  const left_slot = useMemo(() => (
+    <div className="flex items-center gap-2">
+      <h1 className="text-lg font-semibold">History</h1>
+      <span className="text-sm text-muted-foreground">
+        {total.toLocaleString()} {total === 1 ? "generation" : "generations"}
+      </span>
+    </div>
+  ), [total]);
 
-        <div className="flex items-center gap-2">
-          <h1 className="text-lg font-semibold">History</h1>
-          <span className="text-sm text-muted-foreground">
-            {total.toLocaleString()} {total === 1 ? "generation" : "generations"}
+  const right_slot = useMemo(() => (
+    <>
+      {is_select_mode && (
+        <>
+          <span className="text-sm text-muted-foreground mr-2">
+            {selected_count} selected
           </span>
-        </div>
-      </div>
 
-      {/* Right section */}
-      <div className="flex items-center gap-2">
-        {is_select_mode && (
+          {selected_count > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={on_clear_selection}
+            >
+              <X className="size-4 mr-1" />
+              Clear
+            </Button>
+          )}
+
+          {selected_count === 2 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={on_compare}
+            >
+              <GitCompare className="size-4 mr-2" />
+              Compare
+            </Button>
+          )}
+        </>
+      )}
+
+      <Button
+        variant={is_select_mode ? "default" : "outline"}
+        size="sm"
+        onClick={on_toggle_select_mode}
+      >
+        {is_select_mode ? (
           <>
-            <span className="text-sm text-muted-foreground mr-2">
-              {selected_count} selected
-            </span>
-
-            {selected_count > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={on_clear_selection}
-              >
-                <X className="size-4 mr-1" />
-                Clear
-              </Button>
-            )}
-
-            {selected_count === 2 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={on_compare}
-              >
-                <GitCompare className="size-4 mr-2" />
-                Compare
-              </Button>
-            )}
+            <CheckSquare className="size-4 mr-2" />
+            Exit Select
+          </>
+        ) : (
+          <>
+            <Square className="size-4 mr-2" />
+            Select
           </>
         )}
+      </Button>
 
-        <Button
-          variant={is_select_mode ? "default" : "outline"}
-          size="sm"
-          onClick={on_toggle_select_mode}
-        >
-          {is_select_mode ? (
-            <>
-              <CheckSquare className="size-4 mr-2" />
-              Exit Select
-            </>
-          ) : (
-            <>
-              <Square className="size-4 mr-2" />
-              Select
-            </>
-          )}
-        </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => set_shortcuts_modal_open(true)}
+        title="Keyboard shortcuts (?)"
+      >
+        <HelpCircle className="size-4" />
+      </Button>
+    </>
+  ), [is_select_mode, selected_count, on_clear_selection, on_compare, on_toggle_select_mode, set_shortcuts_modal_open]);
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => set_shortcuts_modal_open(true)}
-          title="Keyboard shortcuts (?)"
-        >
-          <HelpCircle className="size-4" />
-        </Button>
-      </div>
-    </div>
-  );
+  return <ToolbarSlots left={left_slot} right={right_slot} />;
 };

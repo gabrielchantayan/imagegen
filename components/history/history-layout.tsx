@@ -238,7 +238,7 @@ export const HistoryLayout = () => {
   });
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-full flex flex-col">
       <HistoryToolbar
         total={total}
         selected_count={selected_ids.length}
