@@ -80,7 +80,7 @@ export const HistoryLayout = () => {
     mutate,
   } = use_history({
     favorites_only: filters.favorites_only,
-    show_hidden: filters.show_hidden,
+    hidden_filter: filters.hidden_filter,
     search: filters.search,
     tags: filters.tags,
     date_from: filters.date_from ?? undefined,

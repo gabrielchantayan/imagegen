@@ -117,7 +117,7 @@ export type ListGenerationsOptions = {
   page?: number;
   limit?: number;
   favorites_only?: boolean;
-  show_hidden?: boolean;
+  hidden_filter?: "normal" | "all" | "hidden_only";
   search?: string;
   tags?: string[];
   date_from?: string;
@@ -193,10 +193,10 @@ export const list_generations_with_favorites = (
     where_clause += " AND f.generation_id IS NOT NULL";
   }
 
-  // Hidden filter: by default exclude hidden items, when show_hidden is true show only hidden items
-  if (options.show_hidden) {
+  // Hidden filter: "normal" excludes hidden, "all" shows everything, "hidden_only" shows only hidden
+  if (options.hidden_filter === "hidden_only") {
     where_clause += " AND h.generation_id IS NOT NULL";
-  } else {
+  } else if (options.hidden_filter !== "all") {
     where_clause += " AND h.generation_id IS NULL";
   }
 

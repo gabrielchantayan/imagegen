@@ -9,7 +9,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 type HistoryOptions = {
   favorites_only?: boolean;
-  show_hidden?: boolean;
+  hidden_filter?: "normal" | "all" | "hidden_only";
   search?: string;
   tags?: string[];
   date_from?: string;
@@ -23,7 +23,7 @@ export const use_history = (options: HistoryOptions = {}) => {
     params.set("page", String(page_index + 1));
     params.set("limit", "24");
     if (options.favorites_only) params.set("favorites", "true");
-    if (options.show_hidden) params.set("show_hidden", "true");
+    if (options.hidden_filter && options.hidden_filter !== "normal") params.set("hidden_filter", options.hidden_filter);
     if (options.search) params.set("search", options.search);
     if (options.tags && options.tags.length > 0) {
       params.set("tags", options.tags.join(","));

@@ -7,6 +7,8 @@ type SortOption = "newest" | "oldest";
 
 type DatePreset = "all" | "today" | "week" | "month" | "custom";
 
+type HiddenFilter = "normal" | "all" | "hidden_only";
+
 type FilterState = {
   search: string;
   date_preset: DatePreset;
@@ -14,7 +16,7 @@ type FilterState = {
   date_to: string | null;
   tags: string[];
   favorites_only: boolean;
-  show_hidden: boolean;
+  hidden_filter: HiddenFilter;
   sort: SortOption;
 };
 
@@ -78,7 +80,7 @@ type HistoryState = {
   set_tags: (tags: string[]) => void;
   clear_tags: () => void;
   set_favorites_only: (favorites_only: boolean) => void;
-  set_show_hidden: (show_hidden: boolean) => void;
+  set_hidden_filter: (hidden_filter: HiddenFilter) => void;
   set_sort: (sort: SortOption) => void;
   reset_filters: () => void;
 
@@ -102,7 +104,7 @@ const DEFAULT_FILTERS: FilterState = {
   date_to: null,
   tags: [],
   favorites_only: false,
-  show_hidden: false,
+  hidden_filter: "normal" as HiddenFilter,
   sort: "newest",
 };
 
@@ -311,9 +313,9 @@ export const use_history_store = create<HistoryState>()((set, get) => ({
     }));
   },
 
-  set_show_hidden: (show_hidden) => {
+  set_hidden_filter: (hidden_filter) => {
     set((state) => ({
-      filters: { ...state.filters, show_hidden },
+      filters: { ...state.filters, hidden_filter },
     }));
   },
 
@@ -381,7 +383,7 @@ export const use_history_store = create<HistoryState>()((set, get) => ({
 }));
 
 // Export types
-export type { FilterState, DatePreset, SortOption, DetailPanelState };
+export type { FilterState, DatePreset, SortOption, HiddenFilter, DetailPanelState };
 
 // Memoized selectors
 export const use_history_ui_state = () =>
@@ -461,7 +463,7 @@ export const use_history_filter_actions = () =>
       set_tags: s.set_tags,
       clear_tags: s.clear_tags,
       set_favorites_only: s.set_favorites_only,
-      set_show_hidden: s.set_show_hidden,
+      set_hidden_filter: s.set_hidden_filter,
       set_sort: s.set_sort,
       reset_filters: s.reset_filters,
     }))

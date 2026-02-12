@@ -34,7 +34,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { use_history_store, type DatePreset, type SortOption } from "@/lib/stores/history-store";
+import { use_history_store, type DatePreset, type SortOption, type HiddenFilter } from "@/lib/stores/history-store";
 import type { GenerationWithFavorite } from "@/lib/types/database";
 import {
   CATEGORY_COLORS,
@@ -84,7 +84,7 @@ export const HistoryFilterSidebar = ({
   const toggle_tag = use_history_store((s) => s.toggle_tag);
   const clear_tags = use_history_store((s) => s.clear_tags);
   const set_favorites_only = use_history_store((s) => s.set_favorites_only);
-  const set_show_hidden = use_history_store((s) => s.set_show_hidden);
+  const set_hidden_filter = use_history_store((s) => s.set_hidden_filter);
   const set_sort = use_history_store((s) => s.set_sort);
   const reset_filters = use_history_store((s) => s.reset_filters);
 
@@ -147,7 +147,7 @@ export const HistoryFilterSidebar = ({
     filters.date_preset !== "all" ||
     filters.tags.length > 0 ||
     filters.favorites_only ||
-    filters.show_hidden ||
+    filters.hidden_filter !== "normal" ||
     filters.sort !== "newest";
 
   if (collapsed) {
@@ -220,16 +220,23 @@ export const HistoryFilterSidebar = ({
         <Tooltip>
           <TooltipTrigger
             className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 size-9 ${
-              filters.show_hidden
+              filters.hidden_filter !== "normal"
                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
                 : "hover:bg-accent hover:text-accent-foreground"
             }`}
-            onClick={() => set_show_hidden(!filters.show_hidden)}
+            onClick={(e) => {
+              if (e.shiftKey) {
+                set_hidden_filter(filters.hidden_filter === "hidden_only" ? "normal" : "hidden_only");
+              } else {
+                set_hidden_filter(filters.hidden_filter === "all" ? "normal" : "all");
+              }
+            }}
           >
             <EyeOff className="size-4" />
           </TooltipTrigger>
           <TooltipContent side="right">
-            {filters.show_hidden ? "Showing hidden" : "Show hidden items"}
+            <p>{filters.hidden_filter === "normal" ? "Show hidden items" : filters.hidden_filter === "all" ? "Showing all + hidden" : "Showing hidden only"}</p>
+            <p className="text-xs text-muted-foreground mt-1">Click: show all + hidden | Shift+click: hidden only</p>
           </TooltipContent>
         </Tooltip>
 
@@ -435,15 +442,32 @@ export const HistoryFilterSidebar = ({
             <Star className={`size-4 mr-2 ${filters.favorites_only ? "fill-current" : ""}`} />
             Favorites only
           </Button>
-          <Button
-            variant={filters.show_hidden ? "default" : "outline"}
-            size="sm"
-            className="w-full justify-start"
-            onClick={() => set_show_hidden(!filters.show_hidden)}
-          >
-            <EyeOff className="size-4 mr-2" />
-            Show hidden
-          </Button>
+          <Tooltip>
+            <TooltipTrigger
+              className="w-full"
+              onClick={(e) => {
+                if (e.shiftKey) {
+                  set_hidden_filter(filters.hidden_filter === "hidden_only" ? "normal" : "hidden_only");
+                } else {
+                  set_hidden_filter(filters.hidden_filter === "all" ? "normal" : "all");
+                }
+              }}
+            >
+              <Button
+                variant={filters.hidden_filter !== "normal" ? "default" : "outline"}
+                size="sm"
+                className="w-full justify-start pointer-events-none"
+                tabIndex={-1}
+              >
+                <EyeOff className="size-4 mr-2" />
+                {filters.hidden_filter === "normal" ? "Show hidden" : filters.hidden_filter === "all" ? "Showing all + hidden" : "Showing hidden only"}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>Click: show all + hidden</p>
+              <p>Shift+click: hidden only</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         <Separator />

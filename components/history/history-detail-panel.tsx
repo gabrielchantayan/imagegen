@@ -888,7 +888,7 @@ const SingleState = ({
           <Button
             variant="outline"
             size="sm"
-            className="w-full justify-start"
+            className="w-full"
             onClick={() => on_toggle_hidden(item.id)}
           >
             {item.is_hidden ? (
