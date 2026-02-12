@@ -33,7 +33,7 @@ export const BuilderLayout = () => {
 
   return (
     <ReferenceSyncProvider>
-      <div className="h-screen flex flex-col">
+      <div className="h-full flex flex-col">
         <BuilderToolbar />
 
         <div className="flex-1 flex overflow-hidden">

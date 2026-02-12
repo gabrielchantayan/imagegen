@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useRef, useState } from "react";
+import { useEffect, useCallback, useRef, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { SettingsDropdown } from "./settings-dropdown";
 import { use_builder_store } from "@/lib/stores/builder-store";
@@ -9,14 +9,14 @@ import { SavePromptModal } from "@/components/library/save-prompt-modal";
 import { SaveTemplateModal } from "@/components/builder/save-template-modal";
 import { KeyboardShortcutsModal } from "@/components/ui/keyboard-shortcuts-modal";
 import { use_keyboard_shortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
+import { ToolbarSlots } from "@/components/shared/toolbar-slots";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Link from "next/link";
-import { Sparkles, Save, Trash2, History, Library, BarChart3, Layers, Keyboard, FileText, LayoutTemplate, ChevronDown } from "lucide-react";
+import { Sparkles, Save, Trash2, Keyboard, FileText, LayoutTemplate, ChevronDown } from "lucide-react";
 import type { Component } from "@/lib/types/database";
 
 // Helper to collect all selected components for tagging
@@ -266,111 +266,81 @@ export const BuilderToolbar = () => {
 
   const is_generating = generation_status === "generating" || generation_status === "queued";
 
-  return (
-    <div className="h-14 border-b bg-background/80 backdrop-blur-md flex items-center justify-between px-4 sticky top-0 z-50">
-      <div className="flex items-center gap-2">
-        <Button
-          onClick={handle_generate}
+  const left_slot = useMemo(() => (
+    <>
+      <Button
+        onClick={handle_generate}
+        disabled={!composed_prompt}
+        className="bg-primary hover:bg-primary/90 shadow-sm transition-all"
+      >
+        <Sparkles className="size-4 mr-2" />
+        {is_generating ? "Add to Queue" : "Generate"}
+      </Button>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger
           disabled={!composed_prompt}
-          className="bg-primary hover:bg-primary/90 shadow-sm transition-all"
+          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border bg-background shadow-sm border-primary/20 hover:border-primary/50 text-foreground h-9 px-4 py-2"
         >
-          <Sparkles className="size-4 mr-2" />
-          {is_generating ? "Add to Queue" : "Generate"}
-        </Button>
+          <Save className="size-4" />
+          Save
+          <ChevronDown className="size-3" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem onClick={handle_save_prompt}>
+            <FileText className="size-4 mr-2" />
+            Save as Prompt
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => set_save_template_modal_open(true)}>
+            <LayoutTemplate className="size-4 mr-2" />
+            Save as Template
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            disabled={!composed_prompt}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border bg-background shadow-sm border-primary/20 hover:border-primary/50 text-foreground h-9 px-4 py-2"
-          >
-            <Save className="size-4" />
-            Save
-            <ChevronDown className="size-3" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuItem onClick={handle_save_prompt}>
-              <FileText className="size-4 mr-2" />
-              Save as Prompt
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => set_save_template_modal_open(true)}>
-              <LayoutTemplate className="size-4 mr-2" />
-              Save as Template
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <div className="h-6 w-px bg-border mx-2" />
 
-        <div className="h-6 w-px bg-border mx-2" />
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={clear_builder}
+        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+      >
+        <Trash2 className="size-4 mr-2" />
+        Clear
+      </Button>
+    </>
+  ), [handle_generate, composed_prompt, is_generating, handle_save_prompt, clear_builder]);
 
-        <Button 
-          variant="ghost" 
-          size="sm"
-          onClick={clear_builder}
-          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-        >
-          <Trash2 className="size-4 mr-2" />
-          Clear
-        </Button>
-      </div>
-
-      <div className="flex items-center gap-1">
-         {queue_position !== null && (
-          <div className="flex items-center gap-2 mr-4 text-xs font-medium text-muted-foreground bg-secondary/50 px-3 py-1 rounded-full">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-            </span>
-            Queue: {queue_position}/5
-          </div>
-        )}
-
-        <div className="flex items-center border rounded-lg p-1 mr-2">
-          <Link href="/history">
-            <Button variant="ghost" size="sm" className="h-7 px-2 text-muted-foreground hover:text-foreground">
-              <History className="size-4 mr-1.5" />
-              History
-            </Button>
-          </Link>
-
-          <div className="w-px h-4 bg-border mx-1" />
-
-          <Link href="/queue">
-            <Button variant="ghost" size="sm" className="h-7 px-2 text-muted-foreground hover:text-foreground">
-              <Layers className="size-4 mr-1.5" />
-              Queue
-            </Button>
-          </Link>
-
-          <div className="w-px h-4 bg-border mx-1" />
-
-          <Link href="/library">
-            <Button variant="ghost" size="sm" className="h-7 px-2 text-muted-foreground hover:text-foreground">
-              <Library className="size-4 mr-1.5" />
-              Library
-            </Button>
-          </Link>
-          
-           <div className="w-px h-4 bg-border mx-1" />
-
-          <Link href="/admin">
-            <Button variant="ghost" size="sm" className="h-7 px-2 text-muted-foreground hover:text-foreground">
-              <BarChart3 className="size-4 mr-1.5" />
-              Stats
-            </Button>
-          </Link>
+  const right_slot = useMemo(() => (
+    <>
+      {queue_position !== null && (
+        <div className="flex items-center gap-2 mr-2 text-xs font-medium text-muted-foreground bg-secondary/50 px-3 py-1 rounded-full">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+          </span>
+          Queue: {queue_position}/5
         </div>
+      )}
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-          onClick={() => set_shortcuts_modal_open(true)}
-          title="Keyboard shortcuts (⌘?)"
-        >
-          <Keyboard className="size-4" />
-        </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+        onClick={() => set_shortcuts_modal_open(true)}
+        title="Keyboard shortcuts (⌘?)"
+      >
+        <Keyboard className="size-4" />
+      </Button>
 
-        <SettingsDropdown />
-      </div>
+      <SettingsDropdown />
+    </>
+  ), [queue_position]);
+
+  return (
+    <>
+      <ToolbarSlots left={left_slot} right={right_slot} />
 
       <SavePromptModal
         open={save_modal_open}
@@ -390,6 +360,6 @@ export const BuilderToolbar = () => {
         on_open_change={set_shortcuts_modal_open}
         context="builder"
       />
-    </div>
+    </>
   );
 };
