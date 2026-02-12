@@ -14,6 +14,7 @@ type FilterState = {
   date_to: string | null;
   tags: string[];
   favorites_only: boolean;
+  show_hidden: boolean;
   sort: SortOption;
 };
 
@@ -77,6 +78,7 @@ type HistoryState = {
   set_tags: (tags: string[]) => void;
   clear_tags: () => void;
   set_favorites_only: (favorites_only: boolean) => void;
+  set_show_hidden: (show_hidden: boolean) => void;
   set_sort: (sort: SortOption) => void;
   reset_filters: () => void;
 
@@ -100,6 +102,7 @@ const DEFAULT_FILTERS: FilterState = {
   date_to: null,
   tags: [],
   favorites_only: false,
+  show_hidden: false,
   sort: "newest",
 };
 
@@ -308,6 +311,12 @@ export const use_history_store = create<HistoryState>()((set, get) => ({
     }));
   },
 
+  set_show_hidden: (show_hidden) => {
+    set((state) => ({
+      filters: { ...state.filters, show_hidden },
+    }));
+  },
+
   set_sort: (sort) => {
     set((state) => ({
       filters: { ...state.filters, sort },
@@ -452,6 +461,7 @@ export const use_history_filter_actions = () =>
       set_tags: s.set_tags,
       clear_tags: s.clear_tags,
       set_favorites_only: s.set_favorites_only,
+      set_show_hidden: s.set_show_hidden,
       set_sort: s.set_sort,
       reset_filters: s.reset_filters,
     }))

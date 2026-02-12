@@ -117,6 +117,7 @@ export type ListGenerationsOptions = {
   page?: number;
   limit?: number;
   favorites_only?: boolean;
+  show_hidden?: boolean;
   search?: string;
   tags?: string[];
   date_from?: string;
@@ -159,15 +160,17 @@ export const list_generations = (options: ListGenerationsOptions = {}): Paginate
   };
 };
 
-type RawGenerationWithFavorite = RawGeneration & { is_favorite: number };
+type RawGenerationWithFavorite = RawGeneration & { is_favorite: number; is_hidden: number };
 
 export const get_generation_with_favorite = (id: string): GenerationWithFavorite | null => {
   const db = get_db();
   const row = db.prepare(`
     SELECT g.*,
-           CASE WHEN f.generation_id IS NOT NULL THEN 1 ELSE 0 END as is_favorite
+           CASE WHEN f.generation_id IS NOT NULL THEN 1 ELSE 0 END as is_favorite,
+           CASE WHEN h.generation_id IS NOT NULL THEN 1 ELSE 0 END as is_hidden
     FROM generations g
     LEFT JOIN favorites f ON g.id = f.generation_id
+    LEFT JOIN hidden_generations h ON g.id = h.generation_id
     WHERE g.id = ?
   `).get(id) as RawGenerationWithFavorite | undefined;
 
@@ -176,6 +179,7 @@ export const get_generation_with_favorite = (id: string): GenerationWithFavorite
   return {
     ...parse_generation(row),
     is_favorite: row.is_favorite === 1,
+    is_hidden: row.is_hidden === 1,
   };
 };
 
@@ -187,6 +191,13 @@ export const list_generations_with_favorites = (
 
   if (options.favorites_only) {
     where_clause += " AND f.generation_id IS NOT NULL";
+  }
+
+  // Hidden filter: by default exclude hidden items, when show_hidden is true show only hidden items
+  if (options.show_hidden) {
+    where_clause += " AND h.generation_id IS NOT NULL";
+  } else {
+    where_clause += " AND h.generation_id IS NULL";
   }
 
   if (options.search) {
@@ -220,9 +231,11 @@ export const list_generations_with_favorites = (
 
   const query = `
     SELECT g.*,
-           CASE WHEN f.generation_id IS NOT NULL THEN 1 ELSE 0 END as is_favorite
+           CASE WHEN f.generation_id IS NOT NULL THEN 1 ELSE 0 END as is_favorite,
+           CASE WHEN h.generation_id IS NOT NULL THEN 1 ELSE 0 END as is_hidden
     FROM generations g
     LEFT JOIN favorites f ON g.id = f.generation_id
+    LEFT JOIN hidden_generations h ON g.id = h.generation_id
     WHERE ${where_clause}
     ORDER BY g.created_at ${sort_order}
   `;
@@ -231,6 +244,7 @@ export const list_generations_with_favorites = (
     SELECT COUNT(*) as count
     FROM generations g
     LEFT JOIN favorites f ON g.id = f.generation_id
+    LEFT JOIN hidden_generations h ON g.id = h.generation_id
     WHERE ${where_clause}
   `;
 
@@ -274,6 +288,7 @@ export const list_generations_with_favorites = (
     items: result.items.map((row) => ({
       ...parse_generation(row),
       is_favorite: row.is_favorite === 1,
+      is_hidden: row.is_hidden === 1,
       tags: tags_map.get(row.id) || [],
     })),
   };
@@ -315,6 +330,42 @@ export const set_favorite = (generation_id: string, is_favorite: boolean): boole
   return is_favorite;
 };
 
+export const toggle_hidden = (generation_id: string): boolean => {
+  const db = get_db();
+
+  const existing = db.prepare(
+    "SELECT 1 FROM hidden_generations WHERE generation_id = ?"
+  ).get(generation_id);
+
+  if (existing) {
+    db.prepare("DELETE FROM hidden_generations WHERE generation_id = ?").run(generation_id);
+    return false;
+  } else {
+    db.prepare(
+      "INSERT INTO hidden_generations (generation_id, hidden_at) VALUES (?, ?)"
+    ).run(generation_id, now());
+    return true;
+  }
+};
+
+export const set_hidden = (generation_id: string, is_hidden: boolean): boolean => {
+  const db = get_db();
+
+  const existing = db.prepare(
+    "SELECT 1 FROM hidden_generations WHERE generation_id = ?"
+  ).get(generation_id);
+
+  if (is_hidden && !existing) {
+    db.prepare(
+      "INSERT INTO hidden_generations (generation_id, hidden_at) VALUES (?, ?)"
+    ).run(generation_id, now());
+  } else if (!is_hidden && existing) {
+    db.prepare("DELETE FROM hidden_generations WHERE generation_id = ?").run(generation_id);
+  }
+
+  return is_hidden;
+};
+
 export const delete_generation = async (id: string): Promise<boolean> => {
   const db = get_db();
   const generation = get_generation(id);
@@ -350,6 +401,7 @@ export const delete_generation = async (id: string): Promise<boolean> => {
   db.prepare("UPDATE generation_queue SET remix_source_id = NULL WHERE remix_source_id = ?").run(id);
 
   db.prepare("DELETE FROM favorites WHERE generation_id = ?").run(id);
+  db.prepare("DELETE FROM hidden_generations WHERE generation_id = ?").run(id);
   db.prepare("DELETE FROM generation_tags WHERE generation_id = ?").run(id);
   const result = db.prepare("DELETE FROM generations WHERE id = ?").run(id);
 

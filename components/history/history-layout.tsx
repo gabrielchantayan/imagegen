@@ -21,7 +21,7 @@ import { HistoryDetailPanel } from "./history-detail-panel";
 import { KeyboardShortcutsModal } from "@/components/ui/keyboard-shortcuts-modal";
 import { HistoryCompareModal } from "./history-compare-modal";
 import { use_history_store } from "@/lib/stores/history-store";
-import { use_history, toggle_favorite_api, delete_generation_api } from "@/lib/hooks/use-history";
+import { use_history, toggle_favorite_api, toggle_hidden_api, delete_generation_api } from "@/lib/hooks/use-history";
 import { use_builder_store } from "@/lib/stores/builder-store";
 import { use_history_keyboard_shortcuts } from "@/lib/hooks/use-history-keyboard-shortcuts";
 import { use_history_url_sync } from "@/lib/hooks/use-history-url-sync";
@@ -80,6 +80,7 @@ export const HistoryLayout = () => {
     mutate,
   } = use_history({
     favorites_only: filters.favorites_only,
+    show_hidden: filters.show_hidden,
     search: filters.search,
     tags: filters.tags,
     date_from: filters.date_from ?? undefined,
@@ -130,6 +131,20 @@ export const HistoryLayout = () => {
       // Update detail panel if showing this item
       if (detail_panel.mode === "single" && detail_panel.item.id === id) {
         set_detail_item({ ...detail_panel.item, is_favorite: !detail_panel.item.is_favorite });
+      }
+    },
+    [mutate, detail_panel, set_detail_item]
+  );
+
+  // Handle toggle hidden
+  const handle_toggle_hidden = useCallback(
+    async (id: string) => {
+      await toggle_hidden_api(id);
+      mutate();
+
+      // Update detail panel if showing this item
+      if (detail_panel.mode === "single" && detail_panel.item.id === id) {
+        set_detail_item({ ...detail_panel.item, is_hidden: !detail_panel.item.is_hidden });
       }
     },
     [mutate, detail_panel, set_detail_item]
@@ -265,6 +280,7 @@ export const HistoryLayout = () => {
             <HistoryDetailPanel
               state={detail_panel}
               on_toggle_favorite={handle_toggle_favorite}
+              on_toggle_hidden={handle_toggle_hidden}
               on_delete={handle_delete}
               on_use_prompt={handle_use_prompt}
               on_close={() => set_detail_item(null)}

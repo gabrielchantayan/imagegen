@@ -18,6 +18,7 @@ export const GET = async (request: Request) => {
       page: parseInt(searchParams.get("page") || "1"),
       limit: parseInt(searchParams.get("limit") || "24"),
       favorites_only: searchParams.get("favorites") === "true",
+      show_hidden: searchParams.get("show_hidden") === "true",
       search: searchParams.get("search") || undefined,
       tags,
       date_from: searchParams.get("date_from") || undefined,

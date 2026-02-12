@@ -23,6 +23,7 @@ export const use_history_url_sync = () => {
   const set_date_range = use_history_store((s) => s.set_date_range);
   const set_tags = use_history_store((s) => s.set_tags);
   const set_favorites_only = use_history_store((s) => s.set_favorites_only);
+  const set_show_hidden = use_history_store((s) => s.set_show_hidden);
   const set_sort = use_history_store((s) => s.set_sort);
 
   // Track if we're currently syncing from URL to store
@@ -45,6 +46,7 @@ export const use_history_url_sync = () => {
       const url_date_to = search_params.get("to");
       const url_tags = search_params.get("tags")?.split(",").filter(Boolean) ?? [];
       const url_favorites = search_params.get("favorites") === "true";
+      const url_show_hidden = search_params.get("show_hidden") === "true";
       const url_sort = search_params.get("sort") as SortOption | null;
 
       // Only apply if this is the initial load or if URL actually has params
@@ -79,6 +81,10 @@ export const use_history_url_sync = () => {
           set_favorites_only(url_favorites);
         }
 
+        if (url_show_hidden !== filters.show_hidden) {
+          set_show_hidden(url_show_hidden);
+        }
+
         if (url_sort && ["newest", "oldest"].includes(url_sort) && url_sort !== filters.sort) {
           set_sort(url_sort);
         }
@@ -96,6 +102,7 @@ export const use_history_url_sync = () => {
     set_date_range,
     set_tags,
     set_favorites_only,
+    set_show_hidden,
     set_sort,
     // Don't include filters in deps to avoid loops
   ]);
@@ -131,6 +138,10 @@ export const use_history_url_sync = () => {
       params.set("favorites", "true");
     }
 
+    if (filters.show_hidden) {
+      params.set("show_hidden", "true");
+    }
+
     if (filters.sort !== "newest") {
       params.set("sort", filters.sort);
     }
@@ -151,6 +162,7 @@ export const use_history_url_sync = () => {
     filters.date_to,
     filters.tags,
     filters.favorites_only,
+    filters.show_hidden,
     filters.sort,
     pathname,
     router,

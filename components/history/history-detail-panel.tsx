@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Star, Trash2, Download, Copy, ImageIcon, Heart, Archive, X, Clipboard, User, RefreshCw, AlertTriangle, Wand2, Sparkles, GitBranch } from "lucide-react";
+import { Star, Trash2, Download, Copy, ImageIcon, Heart, Archive, X, Clipboard, User, RefreshCw, AlertTriangle, Wand2, Sparkles, GitBranch, EyeOff, Eye } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +45,7 @@ const format_tag_name = (tag: string): string => {
 type HistoryDetailPanelProps = {
   state: DetailPanelState;
   on_toggle_favorite: (id: string) => void;
+  on_toggle_hidden: (id: string) => void;
   on_delete: (id: string) => void;
   on_use_prompt: (prompt: Record<string, unknown>) => void;
   on_close: () => void;
@@ -56,6 +57,7 @@ type HistoryDetailPanelProps = {
 export const HistoryDetailPanel = ({
   state,
   on_toggle_favorite,
+  on_toggle_hidden,
   on_delete,
   on_use_prompt,
   on_close,
@@ -72,6 +74,7 @@ export const HistoryDetailPanel = ({
       <BatchState
         items={state.items}
         on_toggle_favorite={on_toggle_favorite}
+        on_toggle_hidden={on_toggle_hidden}
         on_delete={on_delete}
       />
     );
@@ -81,6 +84,7 @@ export const HistoryDetailPanel = ({
     <SingleState
       item={state.item}
       on_toggle_favorite={on_toggle_favorite}
+      on_toggle_hidden={on_toggle_hidden}
       on_delete={on_delete}
       on_use_prompt={on_use_prompt}
       on_close={on_close}
@@ -127,10 +131,12 @@ const EmptyState = ({ total_count }: { total_count: number }) => {
 const BatchState = ({
   items,
   on_toggle_favorite,
+  on_toggle_hidden,
   on_delete,
 }: {
   items: GenerationWithFavorite[];
   on_toggle_favorite: (id: string) => void;
+  on_toggle_hidden: (id: string) => void;
   on_delete: (id: string) => void;
 }) => {
   const [is_deleting, set_is_deleting] = useState(false);
@@ -140,6 +146,22 @@ const BatchState = ({
     for (const item of items) {
       if (!item.is_favorite) {
         await on_toggle_favorite(item.id);
+      }
+    }
+  };
+
+  const handle_hide_all = async () => {
+    for (const item of items) {
+      if (!item.is_hidden) {
+        await on_toggle_hidden(item.id);
+      }
+    }
+  };
+
+  const handle_unhide_all = async () => {
+    for (const item of items) {
+      if (item.is_hidden) {
+        await on_toggle_hidden(item.id);
       }
     }
   };
@@ -166,6 +188,8 @@ const BatchState = ({
   };
 
   const favorites_count = items.filter((i) => i.is_favorite).length;
+  const hidden_count = items.filter((i) => i.is_hidden).length;
+  const all_hidden = hidden_count === items.length;
 
   return (
     <div className="h-full flex flex-col">
@@ -173,7 +197,7 @@ const BatchState = ({
       <div className="p-4 border-b shrink-0">
         <h3 className="font-medium">{items.length} images selected</h3>
         <p className="text-sm text-muted-foreground">
-          {favorites_count} favorited
+          {favorites_count} favorited, {hidden_count} hidden
         </p>
       </div>
 
@@ -187,6 +211,25 @@ const BatchState = ({
         >
           <Star className="size-4 mr-2" />
           Favorite all
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full justify-start"
+          onClick={all_hidden ? handle_unhide_all : handle_hide_all}
+        >
+          {all_hidden ? (
+            <>
+              <Eye className="size-4 mr-2" />
+              Unhide all
+            </>
+          ) : (
+            <>
+              <EyeOff className="size-4 mr-2" />
+              Hide all
+            </>
+          )}
         </Button>
 
         <Button
@@ -360,6 +403,7 @@ const TagsSection = ({
 const SingleState = ({
   item,
   on_toggle_favorite,
+  on_toggle_hidden,
   on_delete,
   on_use_prompt,
   on_update,
@@ -367,6 +411,7 @@ const SingleState = ({
 }: {
   item: GenerationWithFavorite;
   on_toggle_favorite: (id: string) => void;
+  on_toggle_hidden: (id: string) => void;
   on_delete: (id: string) => void;
   on_use_prompt: (prompt: Record<string, unknown>) => void;
   on_close: () => void;
@@ -838,6 +883,25 @@ const SingleState = ({
           >
             <Copy className="size-4 mr-2" />
             Copy JSON to Builder
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start"
+            onClick={() => on_toggle_hidden(item.id)}
+          >
+            {item.is_hidden ? (
+              <>
+                <Eye className="size-4 mr-2" />
+                Unhide
+              </>
+            ) : (
+              <>
+                <EyeOff className="size-4 mr-2" />
+                Hide
+              </>
+            )}
           </Button>
 
           <div className="flex gap-2">

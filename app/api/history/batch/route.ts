@@ -2,9 +2,9 @@ import { NextRequest } from "next/server";
 
 import { with_auth } from "@/lib/api-auth";
 import { error_response, json_response } from "@/lib/api-helpers";
-import { set_favorite, delete_generation } from "@/lib/repositories/generations";
+import { set_favorite, set_hidden, delete_generation } from "@/lib/repositories/generations";
 
-type BatchAction = "favorite" | "unfavorite" | "delete";
+type BatchAction = "favorite" | "unfavorite" | "hide" | "unhide" | "delete";
 
 type BatchRequest = {
   ids: string[];
@@ -20,8 +20,8 @@ export const POST = async (request: NextRequest) => {
       return error_response("ids array required");
     }
 
-    if (!action || !["favorite", "unfavorite", "delete"].includes(action)) {
-      return error_response("action must be 'favorite', 'unfavorite', or 'delete'");
+    if (!action || !["favorite", "unfavorite", "hide", "unhide", "delete"].includes(action)) {
+      return error_response("action must be 'favorite', 'unfavorite', 'hide', 'unhide', or 'delete'");
     }
 
     const results: { id: string; success: boolean; error?: string }[] = [];
@@ -31,6 +31,9 @@ export const POST = async (request: NextRequest) => {
         if (action === "delete") {
           const success = await delete_generation(id);
           results.push({ id, success });
+        } else if (action === "hide" || action === "unhide") {
+          set_hidden(id, action === "hide");
+          results.push({ id, success: true });
         } else {
           // Set favorite state directly based on the action
           set_favorite(id, action === "favorite");

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Star, Check, User, RefreshCw, AlertTriangle, Sparkles } from "lucide-react";
+import { Star, Check, User, RefreshCw, AlertTriangle, Sparkles, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { GenerationWithFavorite } from "@/lib/types/database";
@@ -137,6 +137,13 @@ export const HistoryCard = ({
           )}
         </div>
       </div>
+
+      {/* Hidden indicator overlay */}
+      {item.is_hidden && (
+        <div className="absolute inset-0 bg-black/30 pointer-events-none flex items-center justify-center">
+          <EyeOff className="size-6 text-white/70" />
+        </div>
+      )}
 
       {/* Selected indicator overlay */}
       {is_selected && (

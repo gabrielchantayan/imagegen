@@ -9,6 +9,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 type HistoryOptions = {
   favorites_only?: boolean;
+  show_hidden?: boolean;
   search?: string;
   tags?: string[];
   date_from?: string;
@@ -22,6 +23,7 @@ export const use_history = (options: HistoryOptions = {}) => {
     params.set("page", String(page_index + 1));
     params.set("limit", "24");
     if (options.favorites_only) params.set("favorites", "true");
+    if (options.show_hidden) params.set("show_hidden", "true");
     if (options.search) params.set("search", options.search);
     if (options.tags && options.tags.length > 0) {
       params.set("tags", options.tags.join(","));
@@ -66,6 +68,18 @@ export const toggle_favorite_api = async (id: string): Promise<boolean> => {
 
   const data = await res.json();
   return data.favorited;
+};
+
+export const toggle_hidden_api = async (id: string): Promise<boolean> => {
+  const res = await fetch(`/api/history/${id}/hidden`, { method: "POST" });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to toggle hidden");
+  }
+
+  const data = await res.json();
+  return data.hidden;
 };
 
 export const delete_generation_api = async (id: string): Promise<void> => {

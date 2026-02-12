@@ -90,6 +90,7 @@ export type Favorite = {
 
 export type GenerationWithFavorite = Generation & {
   is_favorite: boolean;
+  is_hidden: boolean;
   tags?: { id: number; tag: string; category: string | null }[];
   reference_photo_ids?: string[] | null;
   used_fallback?: boolean;
